@@ -1,14 +1,11 @@
-// tslint:disable-next-line ban-types
-type SimpleType = number | string | Function | boolean | symbol | null | undefined;
-
 export type Errors<T> = {
-    [K in keyof T]: T[K] extends SimpleType
-        ? string
-        : T[K] extends (infer A)[]
-        ? A extends SimpleType
-            ? string[]
-            : Errors<A>[]
-        : Errors<T[K]>;
+    [K in keyof T]: T[K] extends object
+        ? T[K] extends (infer A)[]
+            ? A extends object
+                ? Errors<A>[]
+                : string[]
+            : Errors<T[K]>
+        : string;
 };
 
 export type ValidatorHandler<T, S> = (value: T, structure: S, indexes: number[]) => string;
@@ -16,13 +13,13 @@ export type ValidatorHandler<T, S> = (value: T, structure: S, indexes: number[])
 export type StructureValidatorHandler<S> = (structure: S) => string;
 
 export type Validators<T, S> = {
-    [K in keyof T]?: T[K] extends SimpleType
-        ? ValidatorHandler<T[K], S>
-        : T[K] extends (infer A)[]
-        ? A extends SimpleType
-            ? ValidatorHandler<A, S>
-            : Validators<A, S>
-        : Validators<T[K], S>;
+    [K in keyof T]?: T[K] extends object
+        ? T[K] extends (infer A)[]
+            ? A extends object
+                ? Validators<A, S>
+                : ValidatorHandler<A, S>
+            : Validators<T[K], S>
+        : ValidatorHandler<T[K], S>;
 };
 
 export type StructureErrors<V extends string> = Record<V, string>;
