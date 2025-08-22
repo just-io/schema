@@ -1,447 +1,725 @@
-import Validator, { combo } from '.';
+import assert from 'node:assert/strict';
+import { describe, test } from 'node:test';
 
-interface SimpleStructure {
-    prop1: string;
-    prop2: number;
-}
+import { schemas } from './index';
+import { ErrorKeeper } from './error-keeper';
+import StructureSchema from './specific-schemas/structure-schema';
 
-interface SimpleStructureWithPartialField {
-    prop1: string;
-    prop2?: number;
-}
-
-interface SimpleStructureWithArrays {
-    prop1: string;
-    prop2: number;
-    prop3: number[];
-}
-
-interface ComplexStructure {
-    prop1: string;
-    prop2: number[];
-    prop3: {
-        subProp1: number[];
-        subProp2: {
-            subSubProp1: string;
-        }[];
-    };
-}
-
-interface ComplexStructureWithArrayInArray {
-    prop1: string;
-    prop2: number[];
-    prop3: {
-        subProp1: number[];
-        subProp2: {
-            subSubProp1: string[];
-        }[];
-    };
-}
-
-describe('Validator.validateFields', () => {
-    it('Validate fields of a simple structure without validators', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: '1',
-            prop2: 2,
-        };
-        const validator = new Validator<SimpleStructure>();
-        expect(validator.validateFields(simpleStructure)).toEqual({ prop1: '', prop2: '' });
+describe('schemas.value', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.value('str').is('str', errorKeeper));
     });
 
-    it('Validate fields of a simple structure with one validator', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: '1',
-            prop2: 2,
-        };
-        const validator = new Validator<SimpleStructure>({
-            prop1: (value) => (value === '1' ? 'error' : ''),
-        });
-        expect(validator.validateFields(simpleStructure)).toEqual({ prop1: 'error', prop2: '' });
-    });
-
-    it('Validate fields of a simple structure with validators', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: '1',
-            prop2: 2,
-        };
-        const validator = new Validator<SimpleStructure>({
-            prop1: (value) => (value === '1' ? 'error' : ''),
-            prop2: (value) => (value === 1 ? 'error' : ''),
-        });
-        expect(validator.validateFields(simpleStructure)).toEqual({ prop1: 'error', prop2: '' });
-    });
-
-    it('Validate fields of a simple structure with structure validators', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: '1',
-            prop2: 2,
-        };
-        const validator = new Validator<SimpleStructure>({
-            prop1: (value) => (value === '1' ? 'error' : ''),
-            prop2: (value, structure) => (structure.prop1 === '1' && value === 2 ? 'error' : ''),
-        });
-        expect(validator.validateFields(simpleStructure)).toEqual({ prop1: 'error', prop2: 'error' });
-    });
-
-    it('Validate fields of a simple structure with a partial field', () => {
-        const strucutre: SimpleStructureWithPartialField = {
-            prop1: '1',
-        };
-        const validator = new Validator<SimpleStructureWithPartialField>({
-            prop1: (value) => (value === '1' ? 'error' : ''),
-            prop2: (value) => (!value ? 'error' : ''),
-        });
-        expect(validator.validateFields(strucutre)).toEqual({ prop1: 'error' });
-    });
-
-    it('Validate fields of a simple structure with arrays', () => {
-        const strucutre: SimpleStructureWithArrays = {
-            prop1: '1',
-            prop2: 2,
-            prop3: [1, 2, 3],
-        };
-        const validator = new Validator<SimpleStructureWithArrays>({
-            prop1: (value) => (value === '1' ? 'error' : ''),
-            prop2: (value, structure) => (structure.prop1 === '1' && value === 2 ? 'error' : ''),
-            prop3: (value) => (value % 2 === 0 ? 'error' : ''),
-        });
-        expect(validator.validateFields(strucutre)).toEqual({
-            prop1: 'error',
-            prop2: 'error',
-            prop3: ['', 'error', ''],
-        });
-    });
-
-    it('Validate fields of a complex structure', () => {
-        const strucutre: ComplexStructure = {
-            prop1: '',
-            prop2: [1, 2, 3],
-            prop3: {
-                subProp1: [0, 0],
-                subProp2: [
-                    {
-                        subSubProp1: 'test',
-                    },
-                    {
-                        subSubProp1: 'not-test',
-                    },
-                ],
-            },
-        };
-        const validator = new Validator<ComplexStructure>({
-            prop1: (value) => (value === '' ? 'error' : ''),
-            prop3: {
-                subProp1: (value) => (value % 2 === 0 ? 'error' : ''),
-                subProp2: {
-                    subSubProp1: (value) => (value === 'test' ? 'error' : ''),
-                },
-            },
-        });
-        expect(validator.validateFields(strucutre)).toEqual({
-            prop1: 'error',
-            prop2: ['', '', ''],
-            prop3: {
-                subProp1: ['error', 'error'],
-                subProp2: [
-                    {
-                        subSubProp1: 'error',
-                    },
-                    {
-                        subSubProp1: '',
-                    },
-                ],
-            },
-        });
-    });
-
-    it('Validate fields of a complex structure with array in array', () => {
-        const strucutre: ComplexStructureWithArrayInArray = {
-            prop1: '',
-            prop2: [1, 2, 3],
-            prop3: {
-                subProp1: [0, 0],
-                subProp2: [
-                    {
-                        subSubProp1: ['test'],
-                    },
-                    {
-                        subSubProp1: ['not-test'],
-                    },
-                ],
-            },
-        };
-        const validator = new Validator<ComplexStructureWithArrayInArray>({
-            prop1: (value) => (value === '' ? 'error' : ''),
-            prop3: {
-                subProp1: (value) => (value % 2 === 0 ? 'error' : ''),
-                subProp2: {
-                    subSubProp1: (value) => (value === 'test' ? 'error' : ''),
-                },
-            },
-        });
-        expect(validator.validateFields(strucutre)).toEqual({
-            prop1: 'error',
-            prop2: ['', '', ''],
-            prop3: {
-                subProp1: ['error', 'error'],
-                subProp2: [
-                    {
-                        subSubProp1: ['error'],
-                    },
-                    {
-                        subSubProp1: [''],
-                    },
-                ],
-            },
-        });
-    });
-
-    it('Validate fields of a complex structure with array in array with indexes', () => {
-        const strucutre: ComplexStructureWithArrayInArray = {
-            prop1: '',
-            prop2: [1, 2, 3],
-            prop3: {
-                subProp1: [0, 0],
-                subProp2: [
-                    {
-                        subSubProp1: ['test'],
-                    },
-                    {
-                        subSubProp1: ['not-test', 'test', 'test'],
-                    },
-                ],
-            },
-        };
-        const validator = new Validator<ComplexStructureWithArrayInArray>({
-            prop1: (value) => (value === '' ? 'error' : ''),
-            prop2: (value, structure, indexes) => (indexes[0] >= 2 ? 'error' : ''),
-            prop3: {
-                subProp1: (value) => (value % 2 === 0 ? 'error' : ''),
-                subProp2: {
-                    subSubProp1: (value, structure, indexes) => {
-                        const id = structure.prop3.subProp2[indexes[0]].subSubProp1.findIndex((elem) => elem === value);
-                        if (id !== -1 && id !== indexes[1]) {
-                            return 'error';
-                        }
-                        return '';
-                    },
-                },
-            },
-        });
-        expect(validator.validateFields(strucutre)).toEqual({
-            prop1: 'error',
-            prop2: ['', '', 'error'],
-            prop3: {
-                subProp1: ['error', 'error'],
-                subProp2: [
-                    {
-                        subSubProp1: [''],
-                    },
-                    {
-                        subSubProp1: ['', '', 'error'],
-                    },
-                ],
-            },
-        });
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.value('str').is(12, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be equal "str".' }]);
     });
 });
 
-describe('Validator.validateStructure', () => {
-    it('Validate structure of a simple structure', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: '1',
-            prop2: 2,
-        };
-        const validator = new Validator<SimpleStructure, 'error1'>(
-            {},
-            {
-                error1: (structure) => (structure.prop1 && structure.prop2 ? 'error' : ''),
-            },
+describe('schemas.string', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.string().is('string', errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.string().is(12, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "string" type.' }]);
+    });
+
+    test('match regexp', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(
+            schemas
+                .string()
+                .regexp(/string/)
+                .is('string', errorKeeper)
         );
-        expect(validator.validateStructure(simpleStructure)).toEqual({ error1: 'error' });
+    });
+
+    test('not match regexp', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(
+            !schemas
+                .string()
+                .regexp(/string/)
+                .is('strung', errorKeeper)
+        );
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should match regexp "string".' },
+        ]);
+    });
+
+    test('match enum', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.string().enum(['string', 'str']).is('string', errorKeeper));
+    });
+
+    test('not match enum', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.string().enum(['string', 'str']).is('strung', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be included in enum of values: "string", "str".' },
+        ]);
+    });
+
+    test('match max length', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.string().maxLength(2).is('st', errorKeeper));
+    });
+
+    test('not match max length', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.string().maxLength(2).is('str', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should contain less than or equal 2 symbols.' },
+        ]);
+    });
+
+    test('match min length', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.string().minLength(2).is('st', errorKeeper));
+    });
+
+    test('not match min length', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.string().minLength(2).is('s', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should contain more than or equal 2 symbols.' },
+        ]);
     });
 });
 
-describe('Validator.validate', () => {
-    it('Validate of a complex structure', () => {
-        const strucutre: ComplexStructure = {
-            prop1: '',
-            prop2: [1, 2, 3],
-            prop3: {
-                subProp1: [0, 0],
-                subProp2: [
-                    {
-                        subSubProp1: 'test',
-                    },
-                    {
-                        subSubProp1: 'not-test',
-                    },
-                ],
-            },
-        };
-        const validator = new Validator<ComplexStructure, 'error1' | 'error2'>(
-            {
-                prop1: (value) => (value === '' ? 'error' : ''),
-                prop3: {
-                    subProp1: (value) => (value % 2 === 0 ? 'error' : ''),
-                    subProp2: {
-                        subSubProp1: (value) => (value === 'test' ? 'error' : ''),
-                    },
-                },
-            },
-            {
-                error1: (structure) => (structure.prop2.length < 2 ? 'error' : ''),
-                error2: (structure) =>
-                    structure.prop3.subProp1.length === structure.prop3.subProp2.length ? 'error' : '',
-            },
+describe('schemas.number', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.number().is(1234, errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.number().is('1234', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "number" type.' }]);
+    });
+
+    test('match enum', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.number().enum([1, 2, 3]).is(1, errorKeeper));
+    });
+
+    test('not match enum', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.number().enum([1, 2, 3]).is(0, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be included in enum of values: 1, 2, 3.' },
+        ]);
+    });
+
+    test('match minimum', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.number().minimum(2).is(2, errorKeeper));
+    });
+
+    test('not match minimum', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.number().minimum(2).is(1, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be more than or equal 2.' },
+        ]);
+    });
+
+    test('match maximum', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.number().maximum(2).is(2, errorKeeper));
+    });
+
+    test('not match maximum', () => {
+        const errorKeeper = new ErrorKeeper();
+
+        assert.ok(!schemas.number().maximum(2).is(3, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be less than or equal 2.' },
+        ]);
+    });
+
+    test('match type integer', () => {
+        const errorKeeper = new ErrorKeeper();
+
+        assert.ok(schemas.number().integer().is(2, errorKeeper));
+    });
+
+    test('not match type integer', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.number().integer().is(3.1, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be integer value.' }]);
+    });
+});
+
+describe('schemas.boolean', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.boolean().is(true, errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.boolean().is('1234', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "boolean" type.' }]);
+    });
+});
+
+describe('schemas.null', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.null().is(null, errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.null().is('1234', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "null" type.' }]);
+    });
+});
+
+describe('schemas.undefined', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.undefined().is(undefined, errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.undefined().is('1234', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be "undefined" type.' },
+        ]);
+    });
+});
+
+describe('schemas.union', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.union(schemas.number(), schemas.null()).is(123, errorKeeper));
+        assert.ok(schemas.union(schemas.number(), schemas.null()).is(null, errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.union(schemas.number(), schemas.null()).is('1234', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], group: 0, details: 'Should be "number" type.' },
+            { pointer: [], group: 1, details: 'Should be "null" type.' },
+        ]);
+    });
+});
+
+describe('schemas.structure', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(
+            schemas
+                .structure({ name: schemas.string(), count: schemas.number() })
+                .is({ name: 'name', count: 12 }, errorKeeper)
         );
-        expect(validator.validate(strucutre)).toEqual({
-            fields: {
-                prop1: 'error',
-                prop2: ['', '', ''],
-                prop3: {
-                    subProp1: ['error', 'error'],
-                    subProp2: [
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.structure({ name: schemas.string(), count: schemas.number() }).is(null, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "object" type.' }]);
+    });
+
+    test('not match property', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(
+            !schemas
+                .structure({ name: schemas.string(), count: schemas.number() })
+                .is({ prefix: 'name', count: '12' }, errorKeeper)
+        );
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: ['name'], details: 'Should be existed.' },
+            { pointer: ['count'], details: 'Should be "number" type.' },
+            { pointer: ['prefix'], details: 'Should not be existed.' },
+        ]);
+    });
+});
+
+describe('schemas.optional', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.optional(schemas.number()).is(123, errorKeeper));
+        assert.ok(schemas.optional(schemas.number()).is(undefined, errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.optional(schemas.number()).is('1234', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "number" type.' }]);
+    });
+});
+
+type Group = { op: 'get'; url: string } | { op: 'add'; data: Record<string, unknown> };
+
+describe('schemas.group', () => {
+    const groupSchema = schemas.group<Group, 'op'>('op', {
+        get: schemas.structure({
+            op: schemas.value('get'),
+            url: schemas.string(),
+        }),
+        add: schemas.structure({
+            op: schemas.value('add'),
+            data: schemas.record(schemas.unknown()),
+        }),
+    });
+
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(groupSchema.is({ op: 'get', url: 'example.com' }, errorKeeper));
+        assert.ok(groupSchema.is({ op: 'add', data: { a: 12 } }, errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!groupSchema.is({ op: 'delete', path: 'example.com' }, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: ['op'], details: 'Should be one of "get", "add".' },
+        ]);
+    });
+});
+
+describe('schemas.array', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.array(schemas.number()).is([1, 2, 3], errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.array(schemas.number()).is(null, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "array" type.' }]);
+    });
+
+    test('not match item', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.array(schemas.number()).is([1, 'name'], errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: ['1'], details: 'Should be "number" type.' },
+        ]);
+    });
+
+    test('match min items', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.array(schemas.number()).maxItems(3).is([1, 2, 3], errorKeeper));
+    });
+
+    test('not match min items', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.array(schemas.number()).maxItems(3).is([1, 2], errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should contain more than or equal 3 items.' },
+        ]);
+    });
+
+    test('match max items', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.array(schemas.number()).minItems(3).is([1, 2, 3], errorKeeper));
+    });
+
+    test('not match max items', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.array(schemas.number()).minItems(3).is([1, 2, 3, 4], errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should contain less than or equal 3 items.' },
+        ]);
+    });
+
+    test('match unique', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.array(schemas.number()).unique().is([1, 2, 3], errorKeeper));
+    });
+
+    test('not match unique', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.array(schemas.number()).unique().is([1, 2, 3, 1], errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'All items should be unique.' },
+        ]);
+    });
+});
+
+describe('schemas.tuple', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.tuple<[number, string]>(schemas.number(), schemas.string()).is([12, 'name'], errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.tuple<[number, string]>(schemas.number(), schemas.string()).is(['name', 12], errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: ['0'], details: 'Should be "number" type.' },
+            { pointer: ['1'], details: 'Should be "string" type.' },
+        ]);
+    });
+});
+
+describe('schemas.record', () => {
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schemas.record(schemas.string()).is({ name: 'name', message: 'message' }, errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.record(schemas.string()).is({ name: 'name', age: 12 }, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: ['age'], details: 'Should be "string" type.' },
+        ]);
+    });
+});
+
+describe('schemas.extended', () => {
+    function extendedValidator(value: Record<string, string>, innerErrorKeeper: ErrorKeeper): boolean {
+        if (Object.keys(value).length === 0) {
+            innerErrorKeeper.push('Should ne not empty.');
+            return false;
+        }
+        return true;
+    }
+
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(
+            schemas
+                .extended(schemas.record(schemas.string()), extendedValidator)
+                .is({ name: 'name', message: 'message' }, errorKeeper)
+        );
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schemas.extended(schemas.record(schemas.string()), extendedValidator).is({}, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should ne not empty.' }]);
+    });
+});
+
+type RecursiveType = {
+    nodes: (RecursiveType | string)[];
+};
+
+describe('schemas.recursive', () => {
+    const recursiveSchema: StructureSchema<RecursiveType> = schemas.structure<RecursiveType>({
+        nodes: schemas.array(schemas.union<RecursiveType | string>(schemas.string(), () => recursiveSchema)),
+    });
+
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(
+            recursiveSchema.is(
+                {
+                    nodes: [
                         {
-                            subSubProp1: 'error',
+                            nodes: [],
+                        },
+                        'leaf',
+                        {
+                            nodes: [
+                                {
+                                    nodes: ['leaf'],
+                                },
+                                'leaf',
+                            ],
+                        },
+                    ],
+                },
+                errorKeeper
+            )
+        );
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(
+            !recursiveSchema.is(
+                {
+                    nodes: [
+                        {
+                            nodes: [],
+                        },
+                        'leaf',
+                        {
+                            nodes: [
+                                {
+                                    nodes: [12],
+                                },
+                                'leaf',
+                            ],
+                        },
+                    ],
+                },
+                errorKeeper
+            )
+        );
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: ['nodes', '2'], group: 0, details: 'Should be "string" type.' },
+            {
+                pointer: ['nodes', '2', 'nodes', '0'],
+                group: 0,
+                details: 'Should be "string" type.',
+            },
+            {
+                pointer: ['nodes', '2', 'nodes', '0', 'nodes', '0'],
+                group: 0,
+                details: 'Should be "string" type.',
+            },
+            {
+                pointer: ['nodes', '2', 'nodes', '0', 'nodes', '0'],
+                group: 1,
+                details: 'Should be "object" type.',
+            },
+        ]);
+    });
+});
+
+type Incoming = {
+    data: {
+        id: string;
+        type: string;
+        attributes: Record<string, unknown>[];
+        relationships?: Record<string, unknown>;
+    };
+};
+
+describe('schemas complex', () => {
+    const schema = schemas.structure<Incoming>({
+        data: schemas.structure<Incoming['data']>({
+            id: schemas.string(),
+            type: schemas.string(),
+            attributes: schemas.array(schemas.record(schemas.string())),
+            relationships: schemas.optional(schemas.record(schemas.string())),
+        }),
+    });
+
+    test('match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(schema.is({ data: { id: 'none', type: '12', attributes: [{ a: '1' }, { b: 'c' }] } }, errorKeeper));
+    });
+
+    test('not match', () => {
+        const errorKeeper = new ErrorKeeper();
+        assert.ok(!schema.is({ data: { test: '12', attributes: [1, {}, 12] } }, errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: ['data', 'id'], details: 'Should be existed.' },
+            { pointer: ['data', 'type'], details: 'Should be existed.' },
+            { pointer: ['data', 'attributes', '0'], details: 'Should be "object" type.' },
+            { pointer: ['data', 'attributes', '2'], details: 'Should be "object" type.' },
+            { pointer: ['data', 'test'], details: 'Should not be existed.' },
+        ]);
+    });
+});
+
+type Book = {
+    name: string;
+    genres: ('horror' | 'adveture')[];
+    published: boolean;
+    pages: number;
+    rating: 1 | 2 | 3 | 4 | 5;
+    subtype:
+        | {
+              type: 'novel';
+          }
+        | {
+              type: 'story';
+              magazines?: {
+                  name: string;
+              }[];
+          };
+};
+
+describe('schemas.generateJSONSchema', () => {
+    test('match', () => {
+        const jsonSchema = schemas.number().generateJSONSchema();
+        assert.deepStrictEqual(jsonSchema, {
+            type: 'number',
+        });
+    });
+
+    test('match with additional', () => {
+        const jsonSchema = schemas
+            .number()
+            .title('Title of value')
+            .description('Description of value')
+            .default(0)
+            .generateJSONSchema();
+        assert.deepStrictEqual(jsonSchema, {
+            type: 'number',
+            defaut: 0,
+            title: 'Title of value',
+            description: 'Description of value',
+        });
+    });
+
+    const schema = schemas.structure<Book>({
+        name: schemas.string().title('Book name'),
+        genres: schemas.array(schemas.string<Book['genres'][number]>(['horror', 'adveture'])).unique(),
+        published: schemas
+            .boolean()
+            .title('Publishing marker')
+            .description('Whether the book is published (true), or not (false)')
+            .default(false),
+        pages: schemas
+            .number()
+            .minimum(0)
+            .integer()
+            .title(() => 'Count of book pages'),
+        rating: schemas.number<Book['rating']>([1, 2, 3, 4, 5]),
+        subtype: schemas.group('type', {
+            novel: schemas.structure({
+                type: schemas.value('novel'),
+            }),
+            story: schemas.structure({
+                type: schemas.value('story'),
+                magazines: schemas.optional(
+                    schemas
+                        .array(
+                            schemas.structure({
+                                name: schemas.string(),
+                            })
+                        )
+                        .default(() => [])
+                ),
+            }),
+        }),
+    });
+
+    test('match complex', () => {
+        const jsonSchema = schema.generateJSONSchema();
+        assert.deepStrictEqual(jsonSchema, {
+            additionalProperties: false,
+            properties: {
+                genres: {
+                    items: {
+                        enum: ['horror', 'adveture'],
+                        type: 'string',
+                    },
+                    type: 'array',
+                    uniqueItems: true,
+                },
+                name: {
+                    type: 'string',
+                    title: 'Book name',
+                },
+                pages: {
+                    title: 'Count of book pages',
+                    minimum: 0,
+                    type: 'integer',
+                },
+                published: {
+                    type: 'boolean',
+                    defaut: false,
+                    title: 'Publishing marker',
+                    description: 'Whether the book is published (true), or not (false)',
+                },
+                rating: {
+                    enum: [1, 2, 3, 4, 5],
+                    type: 'number',
+                },
+                subtype: {
+                    oneOf: [
+                        {
+                            additionalProperties: false,
+                            properties: {
+                                type: {
+                                    const: 'novel',
+                                    type: 'string',
+                                },
+                            },
+                            required: ['type'],
+                            type: 'object',
                         },
                         {
-                            subSubProp1: '',
+                            additionalProperties: false,
+                            properties: {
+                                magazines: {
+                                    items: {
+                                        additionalProperties: false,
+                                        properties: {
+                                            name: {
+                                                type: 'string',
+                                            },
+                                        },
+                                        required: ['name'],
+                                        type: 'object',
+                                    },
+                                    type: 'array',
+                                    defaut: [],
+                                },
+                                type: {
+                                    const: 'story',
+                                    type: 'string',
+                                },
+                            },
+                            required: ['type'],
+                            type: 'object',
                         },
                     ],
                 },
             },
-            structure: {
-                error1: '',
-                error2: 'error',
-            },
+            required: ['name', 'genres', 'published', 'pages', 'rating', 'subtype'],
+            type: 'object',
         });
     });
-});
 
-describe('Validator.hasFieldsErrors', () => {
-    it('has errors in fields in a simple structure with an error', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: '1',
-            prop2: 2,
-        };
-        const validator = new Validator<SimpleStructure>({
-            prop1: (value) => (value === '1' ? 'error' : ''),
-        });
-        expect(validator.hasFieldsErrors(validator.validateFields(simpleStructure))).toEqual(true);
+    const recursiveSchema: StructureSchema<RecursiveType> = schemas.structure<RecursiveType>({
+        nodes: schemas.array(schemas.union<RecursiveType | string>(schemas.string(), () => recursiveSchema)),
     });
 
-    it('has errors in fields in a simple structure without errors', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: '0',
-            prop2: 2,
-        };
-        const validator = new Validator<SimpleStructure>({
-            prop1: (value) => (value === '1' ? 'error' : ''),
-        });
-        expect(validator.hasFieldsErrors(validator.validateFields(simpleStructure))).toEqual(false);
-    });
-
-    it('has errors in fields in a complex structure with deep errors', () => {
-        const strucutre: ComplexStructure = {
-            prop1: '',
-            prop2: [1, 2, 3],
-            prop3: {
-                subProp1: [0, 0],
-                subProp2: [
-                    {
-                        subSubProp1: 'test',
+    test('match recursive', () => {
+        const jsonSchema = recursiveSchema.generateJSONSchema();
+        assert.deepStrictEqual(jsonSchema, {
+            $defs: {
+                'nodes/1': {
+                    additionalProperties: false,
+                    properties: {
+                        nodes: {
+                            items: {
+                                oneOf: [
+                                    {
+                                        type: 'string',
+                                    },
+                                    {
+                                        $ref: '#/$defs/nodes/1',
+                                    },
+                                ],
+                            },
+                            type: 'array',
+                        },
                     },
-                    {
-                        subSubProp1: 'not-test',
-                    },
-                ],
-            },
-        };
-        const validator = new Validator<ComplexStructure>({
-            prop3: {
-                subProp1: (value) => (value % 2 === 0 ? 'error' : ''),
-                subProp2: {
-                    subSubProp1: (value) => (value === 'test' ? 'error' : ''),
+                    required: ['nodes'],
+                    type: 'object',
                 },
             },
-        });
-        expect(validator.hasFieldsErrors(validator.validateFields(strucutre))).toEqual(true);
-    });
-});
-
-describe('Validator.hasStructureErrors', () => {
-    it('has structure errors in the structure', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: '1',
-            prop2: 2,
-        };
-        const validator = new Validator<SimpleStructure, 'error1'>(
-            {},
-            {
-                error1: (structure) => (structure.prop1 && structure.prop2 ? 'error' : ''),
-            },
-        );
-        expect(validator.hasStructureErrors(validator.validateStructure(simpleStructure))).toEqual(true);
-    });
-});
-
-describe('Validator.hasErrors', () => {
-    it('has errors in the structure', () => {
-        const strucutre: ComplexStructure = {
-            prop1: '',
-            prop2: [1, 2, 3],
-            prop3: {
-                subProp1: [0, 0],
-                subProp2: [
-                    {
-                        subSubProp1: 'test',
+            additionalProperties: false,
+            properties: {
+                nodes: {
+                    items: {
+                        oneOf: [
+                            {
+                                type: 'string',
+                            },
+                            {
+                                $ref: '#/$defs/nodes/1',
+                            },
+                        ],
                     },
-                    {
-                        subSubProp1: 'not-test',
-                    },
-                ],
-            },
-        };
-        const validator = new Validator<ComplexStructure, 'error1' | 'error2'>(
-            {
-                prop3: {
-                    subProp1: (value) => (value % 2 === 0 ? 'error' : ''),
-                    subProp2: {
-                        subSubProp1: (value) => (value === 'test' ? 'error' : ''),
-                    },
+                    type: 'array',
                 },
             },
-            {
-                error1: (structure) => (structure.prop2.length < 2 ? 'error' : ''),
-                error2: (structure) =>
-                    structure.prop3.subProp1.length === structure.prop3.subProp2.length ? 'error' : '',
-            },
-        );
-        expect(validator.hasErrors(validator.validate(strucutre))).toEqual(true);
-    });
-});
-
-describe('combo', () => {
-    it('combo one function', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: 'test',
-            prop2: 2,
-        };
-        const comboFunction = combo((value: string, structure: SimpleStructure) => value === 'test' ? 'error' : '');
-        expect(comboFunction(simpleStructure.prop1, simpleStructure, [])).toEqual('error');
-    });
-
-    it('combo three function', () => {
-        const simpleStructure: SimpleStructure = {
-            prop1: 'test',
-            prop2: 2,
-        };
-        const comboFunction = combo(
-            (value: string, structure: SimpleStructure) => value === 't' ? 'error1' : '',
-            (value: string, structure: SimpleStructure) => value === 'test' ? 'error2' : '',
-            (value: string, structure: SimpleStructure) => value === 'tester' ? 'error3' : '',
-        );
-        expect(comboFunction(simpleStructure.prop1, simpleStructure, [])).toEqual('error2');
+            required: ['nodes'],
+            type: 'object',
+        });
     });
 });
