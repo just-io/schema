@@ -1,7 +1,7 @@
 {
-  "name": "@sio/schema",
+  "name": "@just-io/schema",
   "version": "2.1.0",
-  "description": "Schema for values",
+  "description": "Declare schemas for validation and generation JSON schemas",
   "types": "dist/types",
   "main": "dist/cjs/index.js",
   "module": "dist/mjs/index.js",
