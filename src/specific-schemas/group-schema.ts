@@ -1,48 +1,56 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { TypeSchema, Schema, Defs } from '../schema';
 
-export type GroupSchemas<T, K extends keyof T & string> = T[K] extends string
+export type GroupSchemas<T, K extends keyof T & string, L extends string> = T[K] extends string
     ? {
-          [F in T[K]]: T extends { [IK in K]: F } ? Schema<T> : never;
+          [F in T[K]]: T extends { [IK in K]: F } ? Schema<T, L> : never;
       }
     : never;
 
-export default class GroupSchema<T, K extends keyof T & string> extends TypeSchema<T> {
+export default class GroupSchema<
+    T,
+    K extends keyof T & string,
+    L extends string,
+> extends TypeSchema<T, L> {
     #key: string;
 
-    #groupSchemas: GroupSchemas<T, K>;
+    #groupSchemas: GroupSchemas<T, K, L>;
 
-    constructor(key: K, groupSchemas: GroupSchemas<T, K>) {
+    constructor(key: K, groupSchemas: GroupSchemas<T, K, L>) {
         super();
         this.#key = key;
         this.#groupSchemas = groupSchemas;
     }
 
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is T {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push(errorKeeper.formatters.object.type());
+            errorKeeper.push(errorKeeper.formatters(lang).object.type());
             return false;
         }
         if (!(this.#key in value)) {
-            errorKeeper.push(errorKeeper.pointer.concat(this.#key), errorKeeper.formatters.object.existField());
+            errorKeeper.push(
+                errorKeeper.pointer.concat(this.#key),
+                errorKeeper.formatters(lang).object.existField(),
+            );
             return false;
         }
         const type = (value as Record<string, string>)[this.#key as string];
         if (!(type in this.#groupSchemas)) {
             errorKeeper.push(
                 errorKeeper.pointer.concat(this.#key),
-                errorKeeper.formatters.object.oneOf(Object.keys(this.#groupSchemas))
+                errorKeeper.formatters(lang).object.oneOf(Object.keys(this.#groupSchemas)),
             );
             return false;
         }
         if (
             TypeSchema.callValidator(
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                this.#groupSchemas[type as keyof GroupSchemas<T, K>] as Schema<any>,
+                this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>,
                 value,
-                errorKeeper
+                lang,
+                errorKeeper,
             )
         ) {
             return true;
@@ -51,12 +59,12 @@ export default class GroupSchema<T, K extends keyof T & string> extends TypeSche
         return false;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
-            title: this.getTitle(),
-            description: this.getDescription(),
+            title: this.getTitle(lang),
+            description: this.getDescription(lang),
             oneOf: Object.entries(this.#groupSchemas).map(([key, schema]) =>
-                defs.collectSchema(pointer.concat(key), schema as Schema<unknown>, lang)
+                defs.collectSchema(pointer.concat(key), schema as Schema<unknown, L>, lang),
             ),
             defaut: this.getDefault(),
         };

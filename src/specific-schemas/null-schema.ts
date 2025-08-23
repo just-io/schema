@@ -1,19 +1,19 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { Defs, TypeSchema } from '../schema';
 
-export default class NullSchema extends TypeSchema<null> {
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is null {
+export default class NullSchema<L extends string> extends TypeSchema<null, L> {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is null {
         if (value !== null) {
-            errorKeeper.push(errorKeeper.formatters.null());
+            errorKeeper.push(errorKeeper.formatters(lang).null());
             return false;
         }
 
         return true;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
             type: 'null',
             title: this.getTitle(lang),

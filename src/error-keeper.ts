@@ -1,4 +1,4 @@
-import { defaultErrorFormatters, ErrorFormatters } from './error-formatters';
+import { ErrorFormatters } from './error-formatters';
 import { Pointer } from './pointer';
 
 export type ValidationError = {
@@ -28,25 +28,20 @@ export class ErrorSet extends Error {
     }
 }
 
-export class ErrorKeeper {
+export class ErrorKeeper<L extends string> {
     #errors: RawValidationError[] = [];
 
-    #formatters: ErrorFormatters;
+    #formatters: Record<L, ErrorFormatters>;
 
     #pointer: Pointer;
 
     #group: number | undefined;
 
-    constructor();
-    constructor(formatters: ErrorFormatters);
-    constructor(pointer: Pointer, formatters: ErrorFormatters);
-    constructor(arg1?: Pointer | ErrorFormatters, arg2?: ErrorFormatters) {
+    constructor(formatters: Record<L, ErrorFormatters>);
+    constructor(pointer: Pointer, formatters: Record<L, ErrorFormatters>);
+    constructor(arg1: Pointer | Record<L, ErrorFormatters>, arg2?: Record<L, ErrorFormatters>) {
         this.#pointer = arg1 instanceof Pointer ? arg1 : new Pointer();
-        this.#formatters = arg2
-            ? arg2
-            : !(arg1 instanceof Pointer) && arg1 !== undefined
-              ? arg1
-              : defaultErrorFormatters;
+        this.#formatters = (arg1 instanceof Pointer ? arg2 : arg1) as Record<L, ErrorFormatters>;
     }
 
     forEach(callbackfn: (error: RawValidationError) => void): void {
@@ -74,8 +69,8 @@ export class ErrorKeeper {
         return this.#pointer;
     }
 
-    get formatters(): ErrorFormatters {
-        return this.#formatters;
+    formatters(lang: L): ErrorFormatters {
+        return this.#formatters[lang];
     }
 
     set group(group: number) {
@@ -86,29 +81,40 @@ export class ErrorKeeper {
         return this.#group;
     }
 
-    child(...paths: (string | number)[]): ErrorKeeperWithParent {
+    child(...paths: (string | number)[]): ErrorKeeperWithParent<L> {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
         return new ErrorKeeperWithParent(this, this.#pointer.concat(...paths), this.#formatters);
     }
 
-    fork(...paths: (string | number)[]): ErrorKeeperWithParent {
+    fork(...paths: (string | number)[]): ErrorKeeperWithParent<L> {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        const errorKeeperWithParent = new ErrorKeeperWithParent(this, this.#pointer.concat(...paths), this.#formatters);
+        const errorKeeperWithParent = new ErrorKeeperWithParent(
+            this,
+            this.#pointer.concat(...paths),
+            this.#formatters,
+        );
         errorKeeperWithParent.mode = 'on-demand';
         return errorKeeperWithParent;
     }
 
     getStringErrorsByPointer(pointer: Pointer): string[] {
-        return this.#errors.filter((error) => error.pointer.equal(pointer)).map((error) => error.details);
+        return this.#errors
+            .filter((error) => error.pointer.equal(pointer))
+            .map((error) => error.details);
     }
 
     getStringErrorsByPointerPrefix(pointerPrefix: Pointer): string[] {
-        return this.#errors.filter((error) => error.pointer.startWith(pointerPrefix)).map((error) => error.details);
+        return this.#errors
+            .filter((error) => error.pointer.startWith(pointerPrefix))
+            .map((error) => error.details);
     }
 
     makeStringErrors(): ValidationError[] {
         return this.#errors.map((error) => {
-            const validationError: ValidationError = { pointer: error.pointer.raw(), details: error.details };
+            const validationError: ValidationError = {
+                pointer: error.pointer.raw(),
+                details: error.details,
+            };
             if (error.group !== undefined) {
                 validationError.group = error.group;
             }
@@ -128,16 +134,13 @@ export class ErrorKeeper {
 
 export type ErrorKeeperWithParentPushMode = 'instant' | 'on-demand';
 
-export class ErrorKeeperWithParent extends ErrorKeeper {
+export class ErrorKeeperWithParent<L extends string> extends ErrorKeeper<L> {
     #mode: ErrorKeeperWithParentPushMode = 'instant';
 
-    #parent: ErrorKeeper;
+    #parent: ErrorKeeper<L>;
 
-    constructor(parent: ErrorKeeper);
-    constructor(parent: ErrorKeeper, formatters: ErrorFormatters);
-    constructor(parent: ErrorKeeper, pointer: Pointer, formatters: ErrorFormatters);
-    constructor(parent: ErrorKeeper, arg1?: Pointer | ErrorFormatters, arg2?: ErrorFormatters) {
-        super(arg1 as Pointer, arg2 as ErrorFormatters);
+    constructor(parent: ErrorKeeper<L>, pointer: Pointer, formatters: Record<L, ErrorFormatters>) {
+        super(pointer, formatters);
         this.#parent = parent;
     }
 
@@ -171,11 +174,9 @@ export class ErrorKeeperWithParent extends ErrorKeeper {
     }
 }
 
-export class DummyErrorKeeper extends ErrorKeeper {
+export class DummyErrorKeeper<L extends string> extends ErrorKeeper<L> {
     push(pointer: Pointer, details: string, group?: number): void;
     push(details: string, group?: number): void;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     push(arg1: Pointer | string, arg2?: string | number, arg3?: number): void {}
 }
-
-export const dummyErrorKeeper = new DummyErrorKeeper();

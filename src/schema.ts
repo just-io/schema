@@ -1,17 +1,18 @@
-import { ErrorKeeper } from './error-keeper';
+import { defaultErrorFormatters } from './error-formatters';
+import { DummyErrorKeeper, ErrorKeeper } from './error-keeper';
 import { JSONSchemaRoot, JSONSchemaValue } from './json-schema';
 import { Pointer } from './pointer';
 
 const dummyJSONSchemaValue: JSONSchemaValue = {};
 
-export class Defs {
-    #defs: Map<BaseSchema<unknown>, [Pointer, JSONSchemaValue]> = new Map();
+export class Defs<L extends string> {
+    #defs: Map<BaseSchema<unknown, L>, [Pointer, JSONSchemaValue]> = new Map();
 
     #makeRef(pointer: Pointer): string {
         return `#/$defs${pointer.toString()}`;
     }
 
-    collectSchema(pointer: Pointer, schema: Schema<unknown>, lang: string): JSONSchemaValue {
+    collectSchema(pointer: Pointer, schema: Schema<unknown, L>, lang: L): JSONSchemaValue {
         if (typeof schema !== 'function') {
             return schema.makeJSONSchema(pointer, this, lang);
         }
@@ -34,7 +35,11 @@ export class Defs {
         }
         const declaration: [Pointer, JSONSchemaValue] = [pointer, dummyJSONSchemaValue];
         this.#defs.set(baseSchema, declaration);
-        const { title, description, ...jsonSchema } = baseSchema.makeJSONSchema(pointer, this, lang);
+        const { title, description, ...jsonSchema } = baseSchema.makeJSONSchema(
+            pointer,
+            this,
+            lang,
+        );
         declaration[1] = jsonSchema;
 
         return {
@@ -50,19 +55,23 @@ export class Defs {
 
     makeDefs(): Record<string, JSONSchemaValue> {
         return Object.fromEntries(
-            Array.from(this.#defs.entries()).map(([, [name, jsonSchema]]) => [name.toString('/', ''), jsonSchema])
+            Array.from(this.#defs.entries()).map(([, [name, jsonSchema]]) => [
+                name.toString('/', ''),
+                jsonSchema,
+            ]),
         );
     }
 }
 
-export abstract class BaseSchema<T> {
+export abstract class BaseSchema<T, L extends string> {
     /**
      * Type guard for type T
      * @param value incoming value for checking
+     * @param lang language for errors
      * @param errorKeeper structure for collecting validation errors
      * @returns true if value has type T otherwise false
      */
-    abstract is(value: unknown, errorKeeper?: ErrorKeeper): value is T;
+    abstract validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T;
 
     /**
      * Private method for generating JSON Schema
@@ -70,30 +79,60 @@ export abstract class BaseSchema<T> {
      * @param defs
      * @param lang
      */
-    abstract makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue;
+    abstract makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue;
 
     /**
      * Type guard for type T but throw error set if value has not type T
      * @param value incoming value for checking
+     * @param lang language for errors
      * @param errorKeeper structure for collecting validation errors
      * @returns true if value has type T otherwise false
      */
-    check(value: unknown, errorKeeper?: ErrorKeeper): value is T {
-        if (!this.is(value, errorKeeper)) {
-            throw errorKeeper?.makeErrorSet() ?? new Error('Invalid value');
+    check(value: unknown): value is T;
+    check(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T;
+    check(value: unknown, lang?: L, errorKeeper?: ErrorKeeper<L>): value is T {
+        if (lang && errorKeeper && !this.is(value, lang, errorKeeper)) {
+            throw errorKeeper.makeErrorSet();
+        }
+        if (!this.is(value)) {
+            throw new Error('Invalid value');
         }
 
         return true;
     }
 
-    protected static callValidator<T>(schema: Schema<T>, value: unknown, errorKeeper: ErrorKeeper): value is T {
-        if (schema instanceof BaseSchema) {
-            return schema.is(value, errorKeeper);
+    /**
+     * Type guard for type T
+     * @param value incoming value for checking
+     * @param lang language for errors
+     * @param errorKeeper structure for collecting validation errors
+     * @returns true if value has type T otherwise false
+     */
+    is(value: unknown): value is T;
+    is(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T;
+    is(value: unknown, lang?: L, errorKeeper?: ErrorKeeper<L>): value is T {
+        if (lang && errorKeeper) {
+            return this.validate(value, lang, errorKeeper);
         }
-        return schema().is(value, errorKeeper);
+        const dummyErrorKeeper = new DummyErrorKeeper<'default'>({
+            default: defaultErrorFormatters,
+        });
+        return this.validate(value, 'default' as L, dummyErrorKeeper as DummyErrorKeeper<L>);
     }
 
-    protected static getSchema<T>(schema: Schema<T>): BaseSchema<T> {
+    protected static callValidator<T, L extends string>(
+        schema: Schema<T, L>,
+        value: unknown,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+    ): value is T {
+        if (schema instanceof BaseSchema) {
+            return schema.is(value, lang, errorKeeper);
+        }
+        return schema().is(value, lang, errorKeeper);
+    }
+
+    protected static getSchema<T, L extends string>(schema: Schema<T, L>): BaseSchema<T, L> {
         if (schema instanceof BaseSchema) {
             return schema;
         }
@@ -105,8 +144,8 @@ export abstract class BaseSchema<T> {
      * @param lang language for generating titles and descriptions
      * @returns JSON Schema
      */
-    generateJSONSchema(lang = 'default'): JSONSchemaRoot {
-        const defs = new Defs();
+    generateJSONSchema(lang: L): JSONSchemaRoot {
+        const defs = new Defs<L>();
         const jsonSchemaRoot: JSONSchemaRoot = this.makeJSONSchema(new Pointer(), defs, lang);
         if (defs.size) {
             jsonSchemaRoot.$defs = defs.makeDefs();
@@ -116,22 +155,20 @@ export abstract class BaseSchema<T> {
     }
 }
 
-type LocalizeString = string | ((lang: string) => string);
+export abstract class TypeSchema<T, L extends string> extends BaseSchema<T, L> {
+    #title?: Record<L, string>;
 
-export abstract class TypeSchema<T> extends BaseSchema<T> {
-    #title?: LocalizeString;
-
-    #description?: LocalizeString;
+    #description?: Record<L, string>;
 
     #default?: T | (() => T);
 
-    title(title: LocalizeString): this {
+    title(title: Record<L, string>): this {
         this.#title = title;
 
         return this;
     }
 
-    description(description: LocalizeString): this {
+    description(description: Record<L, string>): this {
         this.#description = description;
 
         return this;
@@ -143,12 +180,12 @@ export abstract class TypeSchema<T> extends BaseSchema<T> {
         return this;
     }
 
-    getDescription(lang = 'default'): string | undefined {
-        return typeof this.#description === 'function' ? this.#description(lang) : this.#description;
+    getDescription(lang: L): string | undefined {
+        return this.#description?.[lang];
     }
 
-    getTitle(lang = 'default'): string | undefined {
-        return typeof this.#title === 'function' ? this.#title(lang) : this.#title;
+    getTitle(lang: L): string | undefined {
+        return this.#title?.[lang];
     }
 
     getDefault(): T | undefined {
@@ -158,5 +195,5 @@ export abstract class TypeSchema<T> extends BaseSchema<T> {
     }
 }
 
-type LazySchema<T> = () => BaseSchema<T>;
-export type Schema<T> = BaseSchema<T> | LazySchema<T>;
+type LazySchema<T, L extends string> = () => BaseSchema<T, L>;
+export type Schema<T, L extends string> = BaseSchema<T, L> | LazySchema<T, L>;

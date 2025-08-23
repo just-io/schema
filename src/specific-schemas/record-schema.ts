@@ -1,19 +1,19 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { TypeSchema, Schema, Defs } from '../schema';
 
-export default class RecordSchema<T> extends TypeSchema<Record<string, T>> {
-    #valueSchema: Schema<T>;
+export default class RecordSchema<T, L extends string> extends TypeSchema<Record<string, T>, L> {
+    #valueSchema: Schema<T, L>;
 
-    constructor(valueSchema: Schema<T>) {
+    constructor(valueSchema: Schema<T, L>) {
         super();
         this.#valueSchema = valueSchema;
     }
 
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is Record<string, T> {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is Record<string, T> {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push(errorKeeper.formatters.object.type());
+            errorKeeper.push(errorKeeper.formatters(lang).object.type());
             return false;
         }
         const valueKeys = Object.keys(value);
@@ -23,7 +23,8 @@ export default class RecordSchema<T> extends TypeSchema<Record<string, T>> {
                 !TypeSchema.callValidator(
                     this.#valueSchema,
                     (value as Record<string, unknown>)[key],
-                    errorKeeper.child(key)
+                    lang,
+                    errorKeeper.child(key),
                 )
             ) {
                 isCorrectedValues = false;
@@ -33,11 +34,11 @@ export default class RecordSchema<T> extends TypeSchema<Record<string, T>> {
         return isCorrectedValues;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
             type: 'object',
-            title: this.getTitle(),
-            description: this.getDescription(),
+            title: this.getTitle(lang),
+            description: this.getDescription(lang),
             additionalProperties: defs.collectSchema(pointer, this.#valueSchema, lang),
             defaut: this.getDefault(),
         };

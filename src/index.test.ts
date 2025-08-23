@@ -1,52 +1,101 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { schemas } from './index';
-import { ErrorKeeper } from './error-keeper';
+import { make, ErrorKeeper, defaultErrorFormatters } from './index';
 import StructureSchema from './specific-schemas/structure-schema';
+
+const schemas = make<'default'>();
+
+describe('common schemas', () => {
+    test('is true', () => {
+        assert.ok(schemas.value('str').is('str'));
+    });
+
+    test('is false', () => {
+        assert.ok(!schemas.value('str').is(12));
+    });
+
+    test('is extended true', () => {
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.value('str').is('str', 'default', errorKeeper));
+    });
+
+    test('is extended false', () => {
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.value('str').is(12, 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be equal "str".' },
+        ]);
+    });
+
+    test('check true', () => {
+        assert.ok(schemas.value('str').check('str'));
+    });
+
+    test('check false', () => {
+        assert.throws(() => schemas.value('str').check(12));
+    });
+
+    test('check extended true', () => {
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.value('str').check('str', 'default', errorKeeper));
+    });
+
+    test('check extended false', () => {
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.throws(() => schemas.value('str').check(12, 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be equal "str".' },
+        ]);
+    });
+});
 
 describe('schemas.value', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.value('str').is('str', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.value('str').is('str', 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.value('str').is(12, errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be equal "str".' }]);
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.value('str').is(12, 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be equal "str".' },
+        ]);
     });
 });
 
 describe('schemas.string', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.string().is('string', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.string().is('string', 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.string().is(12, errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "string" type.' }]);
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.string().is(12, 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be "string" type.' },
+        ]);
     });
 
     test('match regexp', () => {
-        const errorKeeper = new ErrorKeeper();
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
         assert.ok(
             schemas
                 .string()
                 .regexp(/string/)
-                .is('string', errorKeeper)
+                .is('string', 'default', errorKeeper),
         );
     });
 
     test('not match regexp', () => {
-        const errorKeeper = new ErrorKeeper();
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
         assert.ok(
             !schemas
                 .string()
                 .regexp(/string/)
-                .is('strung', errorKeeper)
+                .is('strung', 'default', errorKeeper),
         );
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should match regexp "string".' },
@@ -54,39 +103,39 @@ describe('schemas.string', () => {
     });
 
     test('match enum', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.string().enum(['string', 'str']).is('string', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.string().enum(['string', 'str']).is('string', 'default', errorKeeper));
     });
 
     test('not match enum', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.string().enum(['string', 'str']).is('strung', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.string().enum(['string', 'str']).is('strung', 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should be included in enum of values: "string", "str".' },
         ]);
     });
 
     test('match max length', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.string().maxLength(2).is('st', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.string().maxLength(2).is('st', 'default', errorKeeper));
     });
 
     test('not match max length', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.string().maxLength(2).is('str', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.string().maxLength(2).is('str', 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should contain less than or equal 2 symbols.' },
         ]);
     });
 
     test('match min length', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.string().minLength(2).is('st', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.string().minLength(2).is('st', 'default', errorKeeper));
     });
 
     test('not match min length', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.string().minLength(2).is('s', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.string().minLength(2).is('s', 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should contain more than or equal 2 symbols.' },
         ]);
@@ -95,104 +144,112 @@ describe('schemas.string', () => {
 
 describe('schemas.number', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.number().is(1234, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.number().is(1234, 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.number().is('1234', errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "number" type.' }]);
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.number().is('1234', 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be "number" type.' },
+        ]);
     });
 
     test('match enum', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.number().enum([1, 2, 3]).is(1, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.number().enum([1, 2, 3]).is(1, 'default', errorKeeper));
     });
 
     test('not match enum', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.number().enum([1, 2, 3]).is(0, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.number().enum([1, 2, 3]).is(0, 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should be included in enum of values: 1, 2, 3.' },
         ]);
     });
 
     test('match minimum', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.number().minimum(2).is(2, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.number().minimum(2).is(2, 'default', errorKeeper));
     });
 
     test('not match minimum', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.number().minimum(2).is(1, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.number().minimum(2).is(1, 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should be more than or equal 2.' },
         ]);
     });
 
     test('match maximum', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.number().maximum(2).is(2, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.number().maximum(2).is(2, 'default', errorKeeper));
     });
 
     test('not match maximum', () => {
-        const errorKeeper = new ErrorKeeper();
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
 
-        assert.ok(!schemas.number().maximum(2).is(3, errorKeeper));
+        assert.ok(!schemas.number().maximum(2).is(3, 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should be less than or equal 2.' },
         ]);
     });
 
     test('match type integer', () => {
-        const errorKeeper = new ErrorKeeper();
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
 
-        assert.ok(schemas.number().integer().is(2, errorKeeper));
+        assert.ok(schemas.number().integer().is(2, 'default', errorKeeper));
     });
 
     test('not match type integer', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.number().integer().is(3.1, errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be integer value.' }]);
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.number().integer().is(3.1, 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be integer value.' },
+        ]);
     });
 });
 
 describe('schemas.boolean', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.boolean().is(true, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.boolean().is(true, 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.boolean().is('1234', errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "boolean" type.' }]);
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.boolean().is('1234', 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be "boolean" type.' },
+        ]);
     });
 });
 
 describe('schemas.null', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.null().is(null, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.null().is(null, 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.null().is('1234', errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "null" type.' }]);
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.null().is('1234', 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be "null" type.' },
+        ]);
     });
 });
 
 describe('schemas.undefined', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.undefined().is(undefined, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.undefined().is(undefined, 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.undefined().is('1234', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.undefined().is('1234', 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should be "undefined" type.' },
         ]);
@@ -201,14 +258,16 @@ describe('schemas.undefined', () => {
 
 describe('schemas.union', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.union(schemas.number(), schemas.null()).is(123, errorKeeper));
-        assert.ok(schemas.union(schemas.number(), schemas.null()).is(null, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.union(schemas.number(), schemas.null()).is(123, 'default', errorKeeper));
+        assert.ok(schemas.union(schemas.number(), schemas.null()).is(null, 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.union(schemas.number(), schemas.null()).is('1234', errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            !schemas.union(schemas.number(), schemas.null()).is('1234', 'default', errorKeeper),
+        );
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], group: 0, details: 'Should be "number" type.' },
             { pointer: [], group: 1, details: 'Should be "null" type.' },
@@ -218,26 +277,32 @@ describe('schemas.union', () => {
 
 describe('schemas.structure', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
         assert.ok(
             schemas
                 .structure({ name: schemas.string(), count: schemas.number() })
-                .is({ name: 'name', count: 12 }, errorKeeper)
+                .is({ name: 'name', count: 12 }, 'default', errorKeeper),
         );
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.structure({ name: schemas.string(), count: schemas.number() }).is(null, errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "object" type.' }]);
-    });
-
-    test('not match property', () => {
-        const errorKeeper = new ErrorKeeper();
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
         assert.ok(
             !schemas
                 .structure({ name: schemas.string(), count: schemas.number() })
-                .is({ prefix: 'name', count: '12' }, errorKeeper)
+                .is(null, 'default', errorKeeper),
+        );
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be "object" type.' },
+        ]);
+    });
+
+    test('not match property', () => {
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            !schemas
+                .structure({ name: schemas.string(), count: schemas.number() })
+                .is({ prefix: 'name', count: '12' }, 'default', errorKeeper),
         );
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: ['name'], details: 'Should be existed.' },
@@ -249,15 +314,17 @@ describe('schemas.structure', () => {
 
 describe('schemas.optional', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.optional(schemas.number()).is(123, errorKeeper));
-        assert.ok(schemas.optional(schemas.number()).is(undefined, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.optional(schemas.number()).is(123, 'default', errorKeeper));
+        assert.ok(schemas.optional(schemas.number()).is(undefined, 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.optional(schemas.number()).is('1234', errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "number" type.' }]);
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.optional(schemas.number()).is('1234', 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be "number" type.' },
+        ]);
     });
 });
 
@@ -276,14 +343,14 @@ describe('schemas.group', () => {
     });
 
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(groupSchema.is({ op: 'get', url: 'example.com' }, errorKeeper));
-        assert.ok(groupSchema.is({ op: 'add', data: { a: 12 } }, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(groupSchema.is({ op: 'get', url: 'example.com' }, 'default', errorKeeper));
+        assert.ok(groupSchema.is({ op: 'add', data: { a: 12 } }, 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!groupSchema.is({ op: 'delete', path: 'example.com' }, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!groupSchema.is({ op: 'delete', path: 'example.com' }, 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: ['op'], details: 'Should be one of "get", "add".' },
         ]);
@@ -292,58 +359,68 @@ describe('schemas.group', () => {
 
 describe('schemas.array', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.array(schemas.number()).is([1, 2, 3], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.array(schemas.number()).is([1, 2, 3], 'default', errorKeeper));
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.array(schemas.number()).is(null, errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should be "array" type.' }]);
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.array(schemas.number()).is(null, 'default', errorKeeper));
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should be "array" type.' },
+        ]);
     });
 
     test('not match item', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.array(schemas.number()).is([1, 'name'], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.array(schemas.number()).is([1, 'name'], 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: ['1'], details: 'Should be "number" type.' },
         ]);
     });
 
     test('match min items', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.array(schemas.number()).maxItems(3).is([1, 2, 3], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            schemas.array(schemas.number()).maxItems(3).is([1, 2, 3], 'default', errorKeeper),
+        );
     });
 
     test('not match min items', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.array(schemas.number()).maxItems(3).is([1, 2], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(!schemas.array(schemas.number()).maxItems(3).is([1, 2], 'default', errorKeeper));
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should contain more than or equal 3 items.' },
         ]);
     });
 
     test('match max items', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.array(schemas.number()).minItems(3).is([1, 2, 3], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            schemas.array(schemas.number()).minItems(3).is([1, 2, 3], 'default', errorKeeper),
+        );
     });
 
     test('not match max items', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.array(schemas.number()).minItems(3).is([1, 2, 3, 4], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            !schemas.array(schemas.number()).minItems(3).is([1, 2, 3, 4], 'default', errorKeeper),
+        );
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'Should contain less than or equal 3 items.' },
         ]);
     });
 
     test('match unique', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.array(schemas.number()).unique().is([1, 2, 3], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(schemas.array(schemas.number()).unique().is([1, 2, 3], 'default', errorKeeper));
     });
 
     test('not match unique', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.array(schemas.number()).unique().is([1, 2, 3, 1], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            !schemas.array(schemas.number()).unique().is([1, 2, 3, 1], 'default', errorKeeper),
+        );
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: [], details: 'All items should be unique.' },
         ]);
@@ -352,13 +429,21 @@ describe('schemas.array', () => {
 
 describe('schemas.tuple', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.tuple<[number, string]>(schemas.number(), schemas.string()).is([12, 'name'], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            schemas
+                .tuple<[number, string]>(schemas.number(), schemas.string())
+                .is([12, 'name'], 'default', errorKeeper),
+        );
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.tuple<[number, string]>(schemas.number(), schemas.string()).is(['name', 12], errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            !schemas
+                .tuple<[number, string]>(schemas.number(), schemas.string())
+                .is(['name', 12], 'default', errorKeeper),
+        );
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: ['0'], details: 'Should be "number" type.' },
             { pointer: ['1'], details: 'Should be "string" type.' },
@@ -368,13 +453,19 @@ describe('schemas.tuple', () => {
 
 describe('schemas.record', () => {
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schemas.record(schemas.string()).is({ name: 'name', message: 'message' }, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            schemas
+                .record(schemas.string())
+                .is({ name: 'name', message: 'message' }, 'default', errorKeeper),
+        );
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.record(schemas.string()).is({ name: 'name', age: 12 }, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            !schemas.record(schemas.string()).is({ name: 'name', age: 12 }, 'default', errorKeeper),
+        );
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: ['age'], details: 'Should be "string" type.' },
         ]);
@@ -382,7 +473,11 @@ describe('schemas.record', () => {
 });
 
 describe('schemas.extended', () => {
-    function extendedValidator(value: Record<string, string>, innerErrorKeeper: ErrorKeeper): boolean {
+    function extendedValidator(
+        value: Record<string, string>,
+        lang: 'default',
+        innerErrorKeeper: ErrorKeeper<'default'>,
+    ): boolean {
         if (Object.keys(value).length === 0) {
             innerErrorKeeper.push('Should ne not empty.');
             return false;
@@ -391,18 +486,24 @@ describe('schemas.extended', () => {
     }
 
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
         assert.ok(
             schemas
                 .extended(schemas.record(schemas.string()), extendedValidator)
-                .is({ name: 'name', message: 'message' }, errorKeeper)
+                .is({ name: 'name', message: 'message' }, 'default', errorKeeper),
         );
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schemas.extended(schemas.record(schemas.string()), extendedValidator).is({}, errorKeeper));
-        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [{ pointer: [], details: 'Should ne not empty.' }]);
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            !schemas
+                .extended(schemas.record(schemas.string()), extendedValidator)
+                .is({}, 'default', errorKeeper),
+        );
+        assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            { pointer: [], details: 'Should ne not empty.' },
+        ]);
     });
 });
 
@@ -411,12 +512,15 @@ type RecursiveType = {
 };
 
 describe('schemas.recursive', () => {
-    const recursiveSchema: StructureSchema<RecursiveType> = schemas.structure<RecursiveType>({
-        nodes: schemas.array(schemas.union<RecursiveType | string>(schemas.string(), () => recursiveSchema)),
-    });
+    const recursiveSchema: StructureSchema<RecursiveType, 'default'> =
+        schemas.structure<RecursiveType>({
+            nodes: schemas.array(
+                schemas.union<RecursiveType | string>(schemas.string(), () => recursiveSchema),
+            ),
+        });
 
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
         assert.ok(
             recursiveSchema.is(
                 {
@@ -435,13 +539,14 @@ describe('schemas.recursive', () => {
                         },
                     ],
                 },
-                errorKeeper
-            )
+                'default',
+                errorKeeper,
+            ),
         );
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
         assert.ok(
             !recursiveSchema.is(
                 {
@@ -460,8 +565,10 @@ describe('schemas.recursive', () => {
                         },
                     ],
                 },
-                errorKeeper
-            )
+                'default',
+
+                errorKeeper,
+            ),
         );
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: ['nodes', '2'], group: 0, details: 'Should be "string" type.' },
@@ -504,13 +611,21 @@ describe('schemas complex', () => {
     });
 
     test('match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(schema.is({ data: { id: 'none', type: '12', attributes: [{ a: '1' }, { b: 'c' }] } }, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            schema.is(
+                { data: { id: 'none', type: '12', attributes: [{ a: '1' }, { b: 'c' }] } },
+                'default',
+                errorKeeper,
+            ),
+        );
     });
 
     test('not match', () => {
-        const errorKeeper = new ErrorKeeper();
-        assert.ok(!schema.is({ data: { test: '12', attributes: [1, {}, 12] } }, errorKeeper));
+        const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+        assert.ok(
+            !schema.is({ data: { test: '12', attributes: [1, {}, 12] } }, 'default', errorKeeper),
+        );
         assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
             { pointer: ['data', 'id'], details: 'Should be existed.' },
             { pointer: ['data', 'type'], details: 'Should be existed.' },
@@ -541,7 +656,7 @@ type Book = {
 
 describe('schemas.generateJSONSchema', () => {
     test('match', () => {
-        const jsonSchema = schemas.number().generateJSONSchema();
+        const jsonSchema = schemas.number().generateJSONSchema('default');
         assert.deepStrictEqual(jsonSchema, {
             type: 'number',
         });
@@ -550,10 +665,10 @@ describe('schemas.generateJSONSchema', () => {
     test('match with additional', () => {
         const jsonSchema = schemas
             .number()
-            .title('Title of value')
-            .description('Description of value')
+            .title({ default: 'Title of value' })
+            .description({ default: 'Description of value' })
             .default(0)
-            .generateJSONSchema();
+            .generateJSONSchema('default');
         assert.deepStrictEqual(jsonSchema, {
             type: 'number',
             defaut: 0,
@@ -563,18 +678,16 @@ describe('schemas.generateJSONSchema', () => {
     });
 
     const schema = schemas.structure<Book>({
-        name: schemas.string().title('Book name'),
-        genres: schemas.array(schemas.string<Book['genres'][number]>(['horror', 'adveture'])).unique(),
+        name: schemas.string().title({ default: 'Book name' }),
+        genres: schemas
+            .array(schemas.string<Book['genres'][number]>(['horror', 'adveture']))
+            .unique(),
         published: schemas
             .boolean()
-            .title('Publishing marker')
-            .description('Whether the book is published (true), or not (false)')
+            .title({ default: 'Publishing marker' })
+            .description({ default: 'Whether the book is published (true), or not (false)' })
             .default(false),
-        pages: schemas
-            .number()
-            .minimum(0)
-            .integer()
-            .title(() => 'Count of book pages'),
+        pages: schemas.number().minimum(0).integer().title({ default: 'Count of book pages' }),
         rating: schemas.number<Book['rating']>([1, 2, 3, 4, 5]),
         subtype: schemas.group('type', {
             novel: schemas.structure({
@@ -587,16 +700,16 @@ describe('schemas.generateJSONSchema', () => {
                         .array(
                             schemas.structure({
                                 name: schemas.string(),
-                            })
+                            }),
                         )
-                        .default(() => [])
+                        .default(() => []),
                 ),
             }),
         }),
     });
 
     test('match complex', () => {
-        const jsonSchema = schema.generateJSONSchema();
+        const jsonSchema = schema.generateJSONSchema('default');
         assert.deepStrictEqual(jsonSchema, {
             additionalProperties: false,
             properties: {
@@ -673,12 +786,15 @@ describe('schemas.generateJSONSchema', () => {
         });
     });
 
-    const recursiveSchema: StructureSchema<RecursiveType> = schemas.structure<RecursiveType>({
-        nodes: schemas.array(schemas.union<RecursiveType | string>(schemas.string(), () => recursiveSchema)),
-    });
+    const recursiveSchema: StructureSchema<RecursiveType, 'default'> =
+        schemas.structure<RecursiveType>({
+            nodes: schemas.array(
+                schemas.union<RecursiveType | string>(schemas.string(), () => recursiveSchema),
+            ),
+        });
 
     test('match recursive', () => {
-        const jsonSchema = recursiveSchema.generateJSONSchema();
+        const jsonSchema = recursiveSchema.generateJSONSchema('default');
         assert.deepStrictEqual(jsonSchema, {
             $defs: {
                 'nodes/1': {

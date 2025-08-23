@@ -1,9 +1,9 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { Defs, TypeSchema } from '../schema';
 
-export default class NumberSchema<T extends number> extends TypeSchema<T> {
+export default class NumberSchema<T extends number, L extends string> extends TypeSchema<T, L> {
     #enum?: T[];
 
     #integer = false;
@@ -19,26 +19,26 @@ export default class NumberSchema<T extends number> extends TypeSchema<T> {
         }
     }
 
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is T {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
         if (typeof value !== 'number') {
-            errorKeeper.push(errorKeeper.formatters.number.type());
+            errorKeeper.push(errorKeeper.formatters(lang).number.type());
             return false;
         }
         if (this.#enum && !this.#enum.includes(value as T)) {
-            errorKeeper.push(errorKeeper.formatters.number.enum(this.#enum));
+            errorKeeper.push(errorKeeper.formatters(lang).number.enum(this.#enum));
             return false;
         }
         if (this.#minimum !== undefined && value < this.#minimum) {
-            errorKeeper.push(errorKeeper.formatters.number.minimum(this.#minimum));
+            errorKeeper.push(errorKeeper.formatters(lang).number.minimum(this.#minimum));
             return false;
         }
         if (this.#maximum !== undefined && value > this.#maximum) {
-            errorKeeper.push(errorKeeper.formatters.number.maximum(this.#maximum));
+            errorKeeper.push(errorKeeper.formatters(lang).number.maximum(this.#maximum));
             return false;
         }
         if (this.#integer) {
             if (value % 1 !== 0) {
-                errorKeeper.push(errorKeeper.formatters.number.integer());
+                errorKeeper.push(errorKeeper.formatters(lang).number.integer());
                 return false;
             }
         }
@@ -46,7 +46,7 @@ export default class NumberSchema<T extends number> extends TypeSchema<T> {
         return true;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
             type: this.#integer ? 'integer' : 'number',
             title: this.getTitle(lang),

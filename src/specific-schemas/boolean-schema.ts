@@ -1,19 +1,19 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { Defs, TypeSchema } from '../schema';
 
-export default class BooleanSchema extends TypeSchema<boolean> {
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is boolean {
+export default class BooleanSchema<L extends string> extends TypeSchema<boolean, L> {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is boolean {
         if (typeof value !== 'boolean') {
-            errorKeeper.push(errorKeeper.formatters.boolean());
+            errorKeeper.push(errorKeeper.formatters(lang).boolean());
             return false;
         }
 
         return true;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
             type: 'boolean',
             title: this.getTitle(lang),

@@ -1,15 +1,15 @@
 {
   "name": "@sio/schema",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Schema for values",
   "types": "dist/types",
   "main": "dist/cjs/index.js",
   "module": "dist/mjs/index.js",
   "exports": {
-      ".": {
-          "import": "./dist/mjs/index.js",
-          "require": "./dist/cjs/index.js"
-      }
+    ".": {
+      "import": "./dist/mjs/index.js",
+      "require": "./dist/cjs/index.js"
+    }
   },
   "scripts": {
     "test-ts": "find ./src -name '*.test.ts' -type f -exec npx ts-node -O '{\"module\": \"commonjs\"}' '{}' \\;",

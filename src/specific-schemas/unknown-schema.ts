@@ -1,13 +1,15 @@
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { Defs, TypeSchema } from '../schema';
 
-export default class UnknownSchema extends TypeSchema<unknown> {
-    is(value: unknown): value is unknown {
+export default class UnknownSchema<L extends string> extends TypeSchema<unknown, L> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    validate(value: unknown, _lang: L, _errorKeeper: ErrorKeeper<L>): value is unknown {
         return true;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
             title: this.getTitle(lang),
             description: this.getDescription(lang),

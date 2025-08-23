@@ -1,10 +1,10 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { TypeSchema, Schema, Defs } from '../schema';
 
-export default class ArraySchema<T> extends TypeSchema<T[]> {
-    #itemSchema: Schema<T>;
+export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L> {
+    #itemSchema: Schema<T, L>;
 
     #maxItems?: number;
 
@@ -12,32 +12,32 @@ export default class ArraySchema<T> extends TypeSchema<T[]> {
 
     #unique?: boolean;
 
-    constructor(itemSchema: Schema<T>) {
+    constructor(itemSchema: Schema<T, L>) {
         super();
         this.#itemSchema = itemSchema;
     }
 
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is T[] {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T[] {
         if (!Array.isArray(value)) {
-            errorKeeper.push(errorKeeper.formatters.array.type());
+            errorKeeper.push(errorKeeper.formatters(lang).array.type());
             return false;
         }
         let isCorrectedValues = true;
         for (let i = 0; i < value.length; i++) {
-            if (!TypeSchema.callValidator(this.#itemSchema, value[i], errorKeeper.child(i))) {
+            if (!TypeSchema.callValidator(this.#itemSchema, value[i], lang, errorKeeper.child(i))) {
                 isCorrectedValues = false;
             }
         }
         if (this.#maxItems !== undefined && value.length < this.#maxItems) {
-            errorKeeper.push(errorKeeper.formatters.array.maxItems(this.#maxItems));
+            errorKeeper.push(errorKeeper.formatters(lang).array.maxItems(this.#maxItems));
             return false;
         }
         if (this.#minItems !== undefined && value.length > this.#minItems) {
-            errorKeeper.push(errorKeeper.formatters.array.minItems(this.#minItems));
+            errorKeeper.push(errorKeeper.formatters(lang).array.minItems(this.#minItems));
             return false;
         }
         if (this.#unique && value.length !== new Set(value).size) {
-            errorKeeper.push(errorKeeper.formatters.array.unique());
+            errorKeeper.push(errorKeeper.formatters(lang).array.unique());
             return false;
         }
 
@@ -59,11 +59,11 @@ export default class ArraySchema<T> extends TypeSchema<T[]> {
         return this;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
             type: 'array',
-            title: this.getTitle(),
-            description: this.getDescription(),
+            title: this.getTitle(lang),
+            description: this.getDescription(lang),
             items: defs.collectSchema(pointer, this.#itemSchema, lang),
             minItems: this.#maxItems,
             maxItems: this.#minItems,

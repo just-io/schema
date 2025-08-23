@@ -1,12 +1,12 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { BaseSchema, Defs } from '../schema';
 
-export default class UndefinedSchema extends BaseSchema<undefined> {
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is undefined {
+export default class UndefinedSchema<L extends string> extends BaseSchema<undefined, L> {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is undefined {
         if (value !== undefined) {
-            errorKeeper.push(errorKeeper.formatters.undefined());
+            errorKeeper.push(errorKeeper.formatters(lang).undefined());
             return false;
         }
 
@@ -14,7 +14,7 @@ export default class UndefinedSchema extends BaseSchema<undefined> {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    makeJSONSchema(_pointer: Pointer, _defs: Defs, _lang: string): JSONSchemaValue {
+    makeJSONSchema(_pointer: Pointer, _defs: Defs<L>, _lang: L): JSONSchemaValue {
         return {};
     }
 }

@@ -11,7 +11,8 @@ export class Pointer {
 
     equal(pointer: Pointer): boolean {
         return (
-            this.#paths.length === pointer.#paths.length && this.#paths.every((path, i) => path === pointer.#paths[i])
+            this.#paths.length === pointer.#paths.length &&
+            this.#paths.every((path, i) => path === pointer.#paths[i])
         );
     }
 

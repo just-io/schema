@@ -36,7 +36,8 @@ export const defaultErrorFormatters: ErrorFormatters = {
     lang: 'default',
     string: {
         type: () => 'Should be "string" type.',
-        enum: (values: string[]) => `Should be included in enum of values: "${values.join('", "')}".`,
+        enum: (values: string[]) =>
+            `Should be included in enum of values: "${values.join('", "')}".`,
         regexp: (regexp: RegExp) => `Should match regexp "${regexp.source}".`,
         minLength: (minLength: number) => `Should contain more than or equal ${minLength} symbols.`,
         maxLength: (maxLength: number) => `Should contain less than or equal ${maxLength} symbols.`,

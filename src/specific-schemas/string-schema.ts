@@ -1,9 +1,9 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { Defs, TypeSchema } from '../schema';
 
-export default class StringSchema<T extends string> extends TypeSchema<T> {
+export default class StringSchema<T extends string, L extends string> extends TypeSchema<T, L> {
     #enum?: T[];
 
     #minLength?: number;
@@ -19,32 +19,32 @@ export default class StringSchema<T extends string> extends TypeSchema<T> {
         }
     }
 
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is T {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatters.string.type());
+            errorKeeper.push(errorKeeper.formatters(lang).string.type());
             return false;
         }
         if (this.#enum && !this.#enum.includes(value as T)) {
-            errorKeeper.push(errorKeeper.formatters.string.enum(this.#enum));
+            errorKeeper.push(errorKeeper.formatters(lang).string.enum(this.#enum));
             return false;
         }
         if (this.#regexp && !this.#regexp.test(value)) {
-            errorKeeper.push(errorKeeper.formatters.string.regexp(this.#regexp));
+            errorKeeper.push(errorKeeper.formatters(lang).string.regexp(this.#regexp));
             return false;
         }
         if (this.#minLength !== undefined && value.length < this.#minLength) {
-            errorKeeper.push(errorKeeper.formatters.string.minLength(this.#minLength));
+            errorKeeper.push(errorKeeper.formatters(lang).string.minLength(this.#minLength));
             return false;
         }
         if (this.#maxLength !== undefined && value.length > this.#maxLength) {
-            errorKeeper.push(errorKeeper.formatters.string.maxLength(this.#maxLength));
+            errorKeeper.push(errorKeeper.formatters(lang).string.maxLength(this.#maxLength));
             return false;
         }
 
         return true;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
             type: 'string',
             title: this.getTitle(lang),

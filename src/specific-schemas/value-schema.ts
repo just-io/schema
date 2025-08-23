@@ -1,9 +1,12 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { Defs, TypeSchema } from '../schema';
 
-export default class ValueSchema<T extends string | number | boolean | null> extends TypeSchema<T> {
+export default class ValueSchema<
+    T extends string | number | boolean | null,
+    L extends string,
+> extends TypeSchema<T, L> {
     #expectedValue: T;
 
     constructor(expectedValue: T) {
@@ -11,16 +14,16 @@ export default class ValueSchema<T extends string | number | boolean | null> ext
         this.#expectedValue = expectedValue;
     }
 
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is T {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
         if (value !== this.#expectedValue) {
-            errorKeeper.push(errorKeeper.formatters.value(this.#expectedValue));
+            errorKeeper.push(errorKeeper.formatters(lang).value(this.#expectedValue));
             return false;
         }
 
         return true;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         if (typeof this.#expectedValue === 'string') {
             return {
                 type: 'string',

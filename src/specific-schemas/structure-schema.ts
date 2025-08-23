@@ -1,24 +1,24 @@
-import { dummyErrorKeeper, ErrorKeeper } from '../error-keeper';
+import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { TypeSchema, Schema, Defs } from '../schema';
 import OptionalSchema from './optional-schema';
 
-export type FieldSchemas<T> = {
-    [K in keyof T]-?: Schema<T[K]>;
+export type FieldSchemas<T, L extends string> = {
+    [K in keyof T]-?: Schema<T[K], L>;
 };
 
-export default class StructureSchema<T> extends TypeSchema<T> {
-    #fieldSchemas: FieldSchemas<T>;
+export default class StructureSchema<T, L extends string> extends TypeSchema<T, L> {
+    #fieldSchemas: FieldSchemas<T, L>;
 
-    constructor(fieldSchemas: FieldSchemas<T>) {
+    constructor(fieldSchemas: FieldSchemas<T, L>) {
         super();
         this.#fieldSchemas = fieldSchemas;
     }
 
-    is(value: unknown, errorKeeper: ErrorKeeper = dummyErrorKeeper): value is T {
+    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push(errorKeeper.formatters.object.type());
+            errorKeeper.push(errorKeeper.formatters(lang).object.type());
             return false;
         }
         const keys = Object.keys(this.#fieldSchemas);
@@ -28,13 +28,17 @@ export default class StructureSchema<T> extends TypeSchema<T> {
             const innerErrorKeeper = errorKeeper.fork(key);
             if (
                 !TypeSchema.callValidator(
-                    this.#fieldSchemas[key as keyof FieldSchemas<T>],
+                    this.#fieldSchemas[key as keyof FieldSchemas<T, L>],
                     fieldValue,
-                    innerErrorKeeper
+                    lang,
+                    innerErrorKeeper,
                 )
             ) {
                 if (!(key in value)) {
-                    errorKeeper.push(errorKeeper.pointer.concat(key), errorKeeper.formatters.object.existField());
+                    errorKeeper.push(
+                        errorKeeper.pointer.concat(key),
+                        errorKeeper.formatters(lang).object.existField(),
+                    );
                 } else {
                     innerErrorKeeper.flush();
                 }
@@ -46,7 +50,10 @@ export default class StructureSchema<T> extends TypeSchema<T> {
         const valueKeys = Object.keys(value);
         for (const key of valueKeys) {
             if (!(key in this.#fieldSchemas)) {
-                errorKeeper.push(errorKeeper.pointer.concat(key), errorKeeper.formatters.object.notexistField());
+                errorKeeper.push(
+                    errorKeeper.pointer.concat(key),
+                    errorKeeper.formatters(lang).object.notexistField(),
+                );
                 isCorrectedValues = false;
             }
         }
@@ -54,20 +61,30 @@ export default class StructureSchema<T> extends TypeSchema<T> {
         return isCorrectedValues;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
             type: 'object',
-            title: this.getTitle(),
-            description: this.getDescription(),
+            title: this.getTitle(lang),
+            description: this.getDescription(lang),
             properties: Object.fromEntries(
                 Object.entries(this.#fieldSchemas).map(([key, fieldSchema]) => {
-                    return [key, defs.collectSchema(pointer.concat(key), fieldSchema as Schema<unknown>, lang)];
-                })
+                    return [
+                        key,
+                        defs.collectSchema(
+                            pointer.concat(key),
+                            fieldSchema as Schema<unknown, L>,
+                            lang,
+                        ),
+                    ];
+                }),
             ),
             additionalProperties: false,
             required: Object.entries(this.#fieldSchemas)
                 .map(([key, fieldSchema]) => {
-                    return TypeSchema.getSchema(fieldSchema as Schema<unknown>) instanceof OptionalSchema ? '' : key;
+                    return TypeSchema.getSchema(fieldSchema as Schema<unknown, L>) instanceof
+                        OptionalSchema
+                        ? ''
+                        : key;
                 })
                 .filter(Boolean),
             defaut: this.getDefault(),
