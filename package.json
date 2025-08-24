@@ -11,13 +11,17 @@
       "require": "./dist/cjs/index.js"
     }
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/just-io/schema"
+  },
   "scripts": {
     "test": "tsc --noEmit && rm -rf test && tsc -p tsconfig.test.json && sh ./fixup.test.sh && node --test \"test/**/*.test.js\" && rm -rf test",
     "lint": "eslint --fix src/. && prettier --write src/.",
     "build": "rm -rf dist/* && tsc -p tsconfig.mjs.json && tsc -p tsconfig.cjs.json && sh ./fixup.sh"
   },
   "author": "Sergey Timonovskiy",
-  "license": "ISC",
+  "license": "MIT",
   "keywords": [
     "Validator",
     "Schema",
