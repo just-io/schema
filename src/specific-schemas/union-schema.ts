@@ -16,7 +16,7 @@ export default class UnionSchema<T, L extends string> extends TypeSchema<T, L> {
         for (let i = 0; i < this.#schemas.length; i++) {
             const unionErrorKeeper = innerErrorKeeper.fork();
             unionErrorKeeper.group = i;
-            if (TypeSchema.callValidator(this.#schemas[i], value, lang, unionErrorKeeper)) {
+            if (this.#schemas[i].validate(value, lang, unionErrorKeeper)) {
                 return true;
             }
             unionErrorKeeper.flush();
@@ -31,7 +31,7 @@ export default class UnionSchema<T, L extends string> extends TypeSchema<T, L> {
             title: this.getTitle(lang),
             description: this.getDescription(lang),
             oneOf: this.#schemas.map((schema, i) =>
-                defs.collectSchema(pointer.concat(i), schema, lang),
+                schema.makeJSONSchema(pointer.concat(i), defs, lang),
             ),
             defaut: this.getDefault(),
         };

@@ -1,7 +1,7 @@
 import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { BaseSchema, Defs, Schema } from '../schema';
+import { Defs, Schema } from '../schema';
 
 export type SpecifyingValidator<T, L extends string> = (
     value: T,
@@ -9,7 +9,7 @@ export type SpecifyingValidator<T, L extends string> = (
     errorKeeper: ErrorKeeper<L>,
 ) => boolean;
 
-export default class ExtendedSchema<T, L extends string> extends BaseSchema<T, L> {
+export default class ExtendedSchema<T, L extends string> extends Schema<T, L> {
     #schema: Schema<T, L>;
 
     #specifyingValidators: SpecifyingValidator<T, L>[];
@@ -21,7 +21,7 @@ export default class ExtendedSchema<T, L extends string> extends BaseSchema<T, L
     }
 
     validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
-        if (!BaseSchema.callValidator(this.#schema, value, lang, errorKeeper)) {
+        if (!this.#schema.validate(value, lang, errorKeeper)) {
             return false;
         }
         let isCorrectedValue = true;
@@ -35,6 +35,6 @@ export default class ExtendedSchema<T, L extends string> extends BaseSchema<T, L
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
-        return BaseSchema.getSchema(this.#schema).makeJSONSchema(pointer, defs, lang);
+        return this.#schema.makeJSONSchema(pointer, defs, lang);
     }
 }

@@ -27,8 +27,7 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
             const fieldValue = (value as Record<string, unknown>)[key];
             const innerErrorKeeper = errorKeeper.fork(key);
             if (
-                !TypeSchema.callValidator(
-                    this.#fieldSchemas[key as keyof FieldSchemas<T, L>],
+                !this.#fieldSchemas[key as keyof FieldSchemas<T, L>].validate(
                     fieldValue,
                     lang,
                     innerErrorKeeper,
@@ -70,9 +69,9 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 Object.entries(this.#fieldSchemas).map(([key, fieldSchema]) => {
                     return [
                         key,
-                        defs.collectSchema(
+                        (fieldSchema as Schema<unknown, L>).makeJSONSchema(
                             pointer.concat(key),
-                            fieldSchema as Schema<unknown, L>,
+                            defs,
                             lang,
                         ),
                     ];
@@ -81,10 +80,7 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
             additionalProperties: false,
             required: Object.entries(this.#fieldSchemas)
                 .map(([key, fieldSchema]) => {
-                    return TypeSchema.getSchema(fieldSchema as Schema<unknown, L>) instanceof
-                        OptionalSchema
-                        ? ''
-                        : key;
+                    return fieldSchema instanceof OptionalSchema ? '' : key;
                 })
                 .filter(Boolean),
             defaut: this.getDefault(),

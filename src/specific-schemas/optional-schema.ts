@@ -1,9 +1,9 @@
 import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { BaseSchema, Defs, Schema } from '../schema';
+import { Defs, Schema } from '../schema';
 
-export default class OptionalSchema<T, L extends string> extends BaseSchema<T | undefined, L> {
+export default class OptionalSchema<T, L extends string> extends Schema<T | undefined, L> {
     #schema: Schema<T, L>;
 
     constructor(schema: Schema<T, L>) {
@@ -15,7 +15,7 @@ export default class OptionalSchema<T, L extends string> extends BaseSchema<T | 
         if (value === undefined) {
             return true;
         }
-        if (BaseSchema.callValidator(this.#schema, value, lang, errorKeeper)) {
+        if (this.#schema.validate(value, lang, errorKeeper)) {
             return true;
         }
 
@@ -23,6 +23,6 @@ export default class OptionalSchema<T, L extends string> extends BaseSchema<T | 
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
-        return BaseSchema.getSchema(this.#schema).makeJSONSchema(pointer, defs, lang);
+        return this.#schema.makeJSONSchema(pointer, defs, lang);
     }
 }

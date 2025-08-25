@@ -20,8 +20,7 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
         let isCorrectedValues = true;
         for (const key of valueKeys) {
             if (
-                !TypeSchema.callValidator(
-                    this.#valueSchema,
+                !this.#valueSchema.validate(
                     (value as Record<string, unknown>)[key],
                     lang,
                     errorKeeper.child(key),
@@ -39,7 +38,11 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
             type: 'object',
             title: this.getTitle(lang),
             description: this.getDescription(lang),
-            additionalProperties: defs.collectSchema(pointer, this.#valueSchema, lang),
+            additionalProperties: this.#valueSchema.makeJSONSchema(
+                pointer.concat('value'),
+                defs,
+                lang,
+            ),
             defaut: this.getDefault(),
         };
     }

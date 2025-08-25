@@ -15,6 +15,7 @@ import UnionSchema from './specific-schemas/union-schema';
 import UnknownSchema from './specific-schemas/unknown-schema';
 import ValueSchema from './specific-schemas/value-schema';
 import { Schema } from './schema';
+import LazySchema from './specific-schemas/lazy-schema';
 
 export function make<L extends string = 'default'>() {
     return {
@@ -40,6 +41,7 @@ export function make<L extends string = 'default'>() {
             new TupleSchema<T, L>(...(tupleSchemas as { [I in keyof T]: Schema<T[I], L> })),
         structure: <T>(fieldSchemas: FieldSchemas<T, L>) => new StructureSchema<T, L>(fieldSchemas),
         record: <T>(valueSchema: Schema<T, L>) => new RecordSchema<T, L>(valueSchema),
+        lazy: <T>(lazySchema: () => Schema<T, L>) => new LazySchema<T, L>(lazySchema),
     };
 }
 

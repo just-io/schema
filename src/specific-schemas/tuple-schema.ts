@@ -22,14 +22,7 @@ export default class TupleSchema<T extends unknown[], L extends string> extends 
         }
         let isCorrectedValues = true;
         for (let i = 0; i < this.#tupleSchemas.length; i++) {
-            if (
-                !TypeSchema.callValidator(
-                    this.#tupleSchemas[i],
-                    value[i],
-                    lang,
-                    errorKeeper.child(i),
-                )
-            ) {
+            if (!this.#tupleSchemas[i].validate(value[i], lang, errorKeeper.child(i))) {
                 isCorrectedValues = false;
             }
         }
@@ -52,7 +45,7 @@ export default class TupleSchema<T extends unknown[], L extends string> extends 
             title: this.getTitle(lang),
             description: this.getDescription(lang),
             prefixItems: this.#tupleSchemas.map((schema, i) => {
-                return defs.collectSchema(pointer.concat(i), schema as Schema<unknown, L>, lang);
+                return (schema as Schema<unknown, L>).makeJSONSchema(pointer.concat(i), defs, lang);
             }),
             defaut: this.getDefault(),
         };

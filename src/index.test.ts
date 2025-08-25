@@ -511,18 +511,20 @@ type RecursiveType = {
     nodes: (RecursiveType | string)[];
 };
 
-describe('schemas.recursive', () => {
-    const recursiveSchema: StructureSchema<RecursiveType, 'default'> =
-        schemas.structure<RecursiveType>({
-            nodes: schemas.array(
-                schemas.union<RecursiveType | string>(schemas.string(), () => recursiveSchema),
+describe('schemas.lazy', () => {
+    const lazySchema: StructureSchema<RecursiveType, 'default'> = schemas.structure<RecursiveType>({
+        nodes: schemas.array(
+            schemas.union<RecursiveType | string>(
+                schemas.string(),
+                schemas.lazy(() => lazySchema),
             ),
-        });
+        ),
+    });
 
     test('match', () => {
         const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
         assert.ok(
-            recursiveSchema.is(
+            lazySchema.is(
                 {
                     nodes: [
                         {
@@ -548,7 +550,7 @@ describe('schemas.recursive', () => {
     test('not match', () => {
         const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
         assert.ok(
-            !recursiveSchema.is(
+            !lazySchema.is(
                 {
                     nodes: [
                         {
@@ -786,18 +788,20 @@ describe('schemas.generateJSONSchema', () => {
         });
     });
 
-    const recursiveSchema: StructureSchema<RecursiveType, 'default'> =
-        schemas.structure<RecursiveType>({
-            nodes: schemas.array(
-                schemas.union<RecursiveType | string>(schemas.string(), () => recursiveSchema),
+    const lazySchema: StructureSchema<RecursiveType, 'default'> = schemas.structure<RecursiveType>({
+        nodes: schemas.array(
+            schemas.union<RecursiveType | string>(
+                schemas.string(),
+                schemas.lazy(() => lazySchema),
             ),
-        });
+        ),
+    });
 
-    test('match recursive', () => {
-        const jsonSchema = recursiveSchema.generateJSONSchema('default');
+    test('match lazy', () => {
+        const jsonSchema = lazySchema.generateJSONSchema('default');
         assert.deepStrictEqual(jsonSchema, {
             $defs: {
-                'nodes/1': {
+                'nodes/item/1': {
                     additionalProperties: false,
                     properties: {
                         nodes: {
@@ -807,7 +811,7 @@ describe('schemas.generateJSONSchema', () => {
                                         type: 'string',
                                     },
                                     {
-                                        $ref: '#/$defs/nodes/1',
+                                        $ref: '#/$defs/nodes/item/1',
                                     },
                                 ],
                             },
@@ -827,7 +831,7 @@ describe('schemas.generateJSONSchema', () => {
                                 type: 'string',
                             },
                             {
-                                $ref: '#/$defs/nodes/1',
+                                $ref: '#/$defs/nodes/item/1',
                             },
                         ],
                     },

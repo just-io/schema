@@ -6,26 +6,21 @@ import { Pointer } from './pointer';
 const dummyJSONSchemaValue: JSONSchemaValue = {};
 
 export class Defs<L extends string> {
-    #defs: Map<BaseSchema<unknown, L>, [Pointer, JSONSchemaValue]> = new Map();
+    #defs: Map<Schema<unknown, L>, [Pointer, JSONSchemaValue]> = new Map();
 
     #makeRef(pointer: Pointer): string {
         return `#/$defs${pointer.toString()}`;
     }
 
     collectSchema(pointer: Pointer, schema: Schema<unknown, L>, lang: L): JSONSchemaValue {
-        if (typeof schema !== 'function') {
-            return schema.makeJSONSchema(pointer, this, lang);
-        }
-        const baseSchema = schema();
-
-        const def = this.#defs.get(baseSchema);
+        const def = this.#defs.get(schema);
         if (def) {
             let title: string | undefined;
             let description: string | undefined;
             // eslint-disable-next-line @typescript-eslint/no-use-before-define
-            if (baseSchema instanceof TypeSchema) {
-                title = baseSchema.getTitle(lang);
-                description = baseSchema.getDescription(lang);
+            if (schema instanceof TypeSchema) {
+                title = schema.getTitle(lang);
+                description = schema.getDescription(lang);
             }
             return {
                 title,
@@ -34,12 +29,8 @@ export class Defs<L extends string> {
             };
         }
         const declaration: [Pointer, JSONSchemaValue] = [pointer, dummyJSONSchemaValue];
-        this.#defs.set(baseSchema, declaration);
-        const { title, description, ...jsonSchema } = baseSchema.makeJSONSchema(
-            pointer,
-            this,
-            lang,
-        );
+        this.#defs.set(schema, declaration);
+        const { title, description, ...jsonSchema } = schema.makeJSONSchema(pointer, this, lang);
         declaration[1] = jsonSchema;
 
         return {
@@ -63,7 +54,7 @@ export class Defs<L extends string> {
     }
 }
 
-export abstract class BaseSchema<T, L extends string> {
+export abstract class Schema<T, L extends string> {
     /**
      * Type guard for type T
      * @param value incoming value for checking
@@ -120,25 +111,6 @@ export abstract class BaseSchema<T, L extends string> {
         return this.validate(value, 'default' as L, dummyErrorKeeper as DummyErrorKeeper<L>);
     }
 
-    protected static callValidator<T, L extends string>(
-        schema: Schema<T, L>,
-        value: unknown,
-        lang: L,
-        errorKeeper: ErrorKeeper<L>,
-    ): value is T {
-        if (schema instanceof BaseSchema) {
-            return schema.is(value, lang, errorKeeper);
-        }
-        return schema().is(value, lang, errorKeeper);
-    }
-
-    protected static getSchema<T, L extends string>(schema: Schema<T, L>): BaseSchema<T, L> {
-        if (schema instanceof BaseSchema) {
-            return schema;
-        }
-        return schema();
-    }
-
     /**
      * Generate JSON Schema for this schema
      * @param lang language for generating titles and descriptions
@@ -155,7 +127,7 @@ export abstract class BaseSchema<T, L extends string> {
     }
 }
 
-export abstract class TypeSchema<T, L extends string> extends BaseSchema<T, L> {
+export abstract class TypeSchema<T, L extends string> extends Schema<T, L> {
     #title?: Record<L, string>;
 
     #description?: Record<L, string>;
@@ -194,6 +166,3 @@ export abstract class TypeSchema<T, L extends string> extends BaseSchema<T, L> {
         return typeof this.#default === 'function' ? this.#default() : this.#default;
     }
 }
-
-type LazySchema<T, L extends string> = () => BaseSchema<T, L>;
-export type Schema<T, L extends string> = BaseSchema<T, L> | LazySchema<T, L>;

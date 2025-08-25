@@ -24,7 +24,7 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
         }
         let isCorrectedValues = true;
         for (let i = 0; i < value.length; i++) {
-            if (!TypeSchema.callValidator(this.#itemSchema, value[i], lang, errorKeeper.child(i))) {
+            if (!this.#itemSchema.validate(value[i], lang, errorKeeper.child(i))) {
                 isCorrectedValues = false;
             }
         }
@@ -64,7 +64,7 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
             type: 'array',
             title: this.getTitle(lang),
             description: this.getDescription(lang),
-            items: defs.collectSchema(pointer, this.#itemSchema, lang),
+            items: this.#itemSchema.makeJSONSchema(pointer.concat('item'), defs, lang),
             minItems: this.#maxItems,
             maxItems: this.#minItems,
             uniqueItems: this.#unique,

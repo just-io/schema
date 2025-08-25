@@ -45,9 +45,8 @@ export default class GroupSchema<
             return false;
         }
         if (
-            TypeSchema.callValidator(
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>).validate(
                 value,
                 lang,
                 errorKeeper,
@@ -64,7 +63,7 @@ export default class GroupSchema<
             title: this.getTitle(lang),
             description: this.getDescription(lang),
             oneOf: Object.entries(this.#groupSchemas).map(([key, schema]) =>
-                defs.collectSchema(pointer.concat(key), schema as Schema<unknown, L>, lang),
+                (schema as Schema<unknown, L>).makeJSONSchema(pointer.concat(key), defs, lang),
             ),
             defaut: this.getDefault(),
         };
