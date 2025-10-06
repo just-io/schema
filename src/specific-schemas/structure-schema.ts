@@ -1,7 +1,15 @@
 import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { TypeSchema, Schema, Defs } from '../schema';
+import {
+    TypeSchema,
+    Schema,
+    Defs,
+    StringStructure,
+    Result,
+    withDefault,
+    ResultValue,
+} from '../schema';
 import OptionalSchema from './optional-schema';
 
 export type FieldSchemas<T, L extends string> = {
@@ -16,36 +24,46 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
         this.#fieldSchemas = fieldSchemas;
     }
 
-    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
+    @withDefault
+    validate(
+        value: unknown,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
         if (typeof value !== 'object' || value === null) {
             errorKeeper.push(errorKeeper.formatters(lang).object.type());
-            return false;
+            return { ok: false, error: true };
         }
+
         const keys = Object.keys(this.#fieldSchemas);
-        let isCorrectedValues = true;
-        for (const key of keys) {
-            const fieldValue = (value as Record<string, unknown>)[key];
-            const innerErrorKeeper = errorKeeper.fork(key);
-            if (
-                !this.#fieldSchemas[key as keyof FieldSchemas<T, L>].validate(
-                    fieldValue,
+        const castedEntries = keys
+            .map((key) => {
+                const innerErrorKeeper = errorKeeper.fork(key);
+                const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].validate(
+                    (value as Record<string, unknown>)[key],
                     lang,
                     innerErrorKeeper,
-                )
-            ) {
-                if (!(key in value)) {
-                    errorKeeper.push(
-                        errorKeeper.pointer.concat(key),
-                        errorKeeper.formatters(lang).object.existField(),
-                    );
-                } else {
-                    innerErrorKeeper.flush();
+                    useDefault,
+                );
+
+                if (!result.ok) {
+                    if (!(key in value)) {
+                        errorKeeper.push(
+                            errorKeeper.pointer.concat(key),
+                            errorKeeper.formatters(lang).object.existField(),
+                        );
+                        return [key, { ok: false, error: true }] as const;
+                    } else {
+                        innerErrorKeeper.flush();
+                    }
                 }
+                return [key, result] as const;
+            })
+            .filter((entry): entry is [string, ResultValue<T[keyof T]>] => entry[1].ok)
+            .map((entry) => [entry[0], entry[1].value] as const);
 
-                isCorrectedValues = false;
-            }
-        }
-
+        let isCorrectedValues = true;
         const valueKeys = Object.keys(value);
         for (const key of valueKeys) {
             if (!(key in this.#fieldSchemas)) {
@@ -57,7 +75,14 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
             }
         }
 
-        return isCorrectedValues;
+        if (castedEntries.length !== keys.length || !isCorrectedValues) {
+            return { ok: false, error: true };
+        }
+
+        return {
+            ok: true,
+            value: Object.fromEntries(castedEntries) as T,
+        };
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -84,6 +109,65 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 })
                 .filter(Boolean),
             defaut: this.getDefault(),
+        };
+    }
+
+    @withDefault
+    cast(
+        value: StringStructure,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        if (typeof value !== 'object' || Array.isArray(value) || value instanceof File) {
+            errorKeeper.push(errorKeeper.formatters(lang).object.type());
+            return { ok: false, error: true };
+        }
+
+        const keys = Object.keys(this.#fieldSchemas);
+        const castedEntries = keys
+            .map((key) => {
+                const innerErrorKeeper = errorKeeper.fork(key);
+                const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].cast(
+                    value[key],
+                    lang,
+                    innerErrorKeeper,
+                    useDefault,
+                );
+
+                if (!(key in value)) {
+                    errorKeeper.push(
+                        errorKeeper.pointer.concat(key),
+                        errorKeeper.formatters(lang).object.existField(),
+                    );
+                    return [key, { ok: false, error: true }] as const;
+                } else {
+                    innerErrorKeeper.flush();
+                    return [key, result] as const;
+                }
+            })
+            .filter((entry): entry is [string, ResultValue<T[keyof T]>] => entry[1].ok)
+            .map((entry) => [entry[0], entry[1].value] as const);
+
+        let isCorrectedValues = true;
+        const valueKeys = Object.keys(value);
+        for (const key of valueKeys) {
+            if (!(key in this.#fieldSchemas)) {
+                errorKeeper.push(
+                    errorKeeper.pointer.concat(key),
+                    errorKeeper.formatters(lang).object.notexistField(),
+                );
+                isCorrectedValues = false;
+            }
+        }
+
+        if (castedEntries.length !== keys.length || !isCorrectedValues) {
+            return { ok: false, error: true };
+        }
+
+        return {
+            ok: true,
+            value: Object.fromEntries(castedEntries) as T,
         };
     }
 }

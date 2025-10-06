@@ -1,7 +1,7 @@
 import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { TypeSchema, Schema, Defs } from '../schema';
+import { TypeSchema, Schema, Defs, Result, StringStructure, withDefault } from '../schema';
 
 export type TupleSchemas<T extends unknown[], L extends string> = {
     [I in keyof T]: Schema<T[I], L>;
@@ -15,16 +15,16 @@ export default class TupleSchema<T extends unknown[], L extends string> extends 
         this.#tupleSchemas = tupleSchemas;
     }
 
-    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
-        if (!Array.isArray(value) || value.length !== this.#tupleSchemas.length) {
+    @withDefault
+    validate(
+        value: unknown,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        if (!Array.isArray(value)) {
             errorKeeper.push(errorKeeper.formatters(lang).array.type());
-            return false;
-        }
-        let isCorrectedValues = true;
-        for (let i = 0; i < this.#tupleSchemas.length; i++) {
-            if (!this.#tupleSchemas[i].validate(value[i], lang, errorKeeper.child(i))) {
-                isCorrectedValues = false;
-            }
+            return { ok: false, error: true };
         }
         if (value.length > this.#tupleSchemas.length) {
             for (let i = this.#tupleSchemas.length; i < value.length; i++) {
@@ -33,10 +33,30 @@ export default class TupleSchema<T extends unknown[], L extends string> extends 
                     errorKeeper.formatters(lang).object.notexistField(),
                 );
             }
-            isCorrectedValues = false;
+            return { ok: false, error: true };
+        }
+        if (value.length !== this.#tupleSchemas.length) {
+            errorKeeper.push(
+                errorKeeper.formatters(lang).array.maxItems(this.#tupleSchemas.length),
+            );
+            errorKeeper.push(
+                errorKeeper.formatters(lang).array.minItems(this.#tupleSchemas.length),
+            );
+            return { ok: false, error: true };
         }
 
-        return isCorrectedValues;
+        const itemValues = value
+            .map((item, i) =>
+                this.#tupleSchemas[i].validate(item, lang, errorKeeper.child(i), useDefault),
+            )
+            .filter((result) => result.ok)
+            .map((result) => result.value);
+
+        if (itemValues.length !== this.#tupleSchemas.length) {
+            return { ok: false, error: true };
+        }
+
+        return { ok: true, value: itemValues as T };
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -49,5 +69,58 @@ export default class TupleSchema<T extends unknown[], L extends string> extends 
             }),
             defaut: this.getDefault(),
         };
+    }
+
+    @withDefault
+    cast(
+        value: StringStructure,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        if (typeof value === 'string' || value === undefined || value instanceof File) {
+            errorKeeper.push(errorKeeper.formatters(lang).array.type());
+            return { ok: false, error: true };
+        }
+        const array = Array.isArray(value)
+            ? value
+            : Array.from(
+                  Object.entries(value).reduce((arr, [i, v]) => {
+                      arr[i as unknown as number] = v;
+                      return arr;
+                  }, [] as StringStructure[]),
+              );
+
+        if (array.length > this.#tupleSchemas.length) {
+            for (let i = this.#tupleSchemas.length; i < array.length; i++) {
+                errorKeeper.push(
+                    errorKeeper.pointer.concat(i),
+                    errorKeeper.formatters(lang).object.notexistField(),
+                );
+            }
+            return { ok: false, error: true };
+        }
+        if (array.length !== this.#tupleSchemas.length) {
+            errorKeeper.push(
+                errorKeeper.formatters(lang).array.maxItems(this.#tupleSchemas.length),
+            );
+            errorKeeper.push(
+                errorKeeper.formatters(lang).array.minItems(this.#tupleSchemas.length),
+            );
+            return { ok: false, error: true };
+        }
+
+        const itemValues = array
+            .map((item, i) =>
+                this.#tupleSchemas[i].cast(item, lang, errorKeeper.child(i), useDefault),
+            )
+            .filter((result) => result.ok)
+            .map((result) => result.value);
+
+        if (itemValues.length !== this.#tupleSchemas.length) {
+            return { ok: false, error: true };
+        }
+
+        return { ok: true, value: itemValues as T };
     }
 }

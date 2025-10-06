@@ -3,7 +3,7 @@ import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { Defs, Result, Schema, StringStructure, withDefault } from '../schema';
 
-export default class OptionalSchema<T, L extends string> extends Schema<T | undefined, L> {
+export default class NullableSchema<T, L extends string> extends Schema<T | null, L> {
     #schema: Schema<T, L>;
 
     constructor(schema: Schema<T, L>) {
@@ -17,9 +17,9 @@ export default class OptionalSchema<T, L extends string> extends Schema<T | unde
         lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
-    ): Result<T | undefined, unknown> {
-        if (value === undefined) {
-            return { ok: true, value: undefined };
+    ): Result<T | null, unknown> {
+        if (value === null) {
+            return { ok: true, value: null };
         }
 
         return this.#schema.validate(value, lang, errorKeeper, useDefault);
@@ -35,9 +35,9 @@ export default class OptionalSchema<T, L extends string> extends Schema<T | unde
         lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
-    ): Result<T | undefined, unknown> {
+    ): Result<T | null, unknown> {
         if (value === '' || value === undefined) {
-            return { ok: true, value: undefined };
+            return { ok: true, value: null };
         }
 
         return this.#schema.cast(value, lang, errorKeeper, useDefault);

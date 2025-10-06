@@ -30,6 +30,7 @@ export interface ErrorFormatters {
         minItems: (minItems: number) => string;
         unique: () => string;
     };
+    path: () => string;
 }
 
 export const defaultErrorFormatters: ErrorFormatters = {
@@ -61,8 +62,9 @@ export const defaultErrorFormatters: ErrorFormatters = {
     value: (value: unknown) => `Should be equal "${value}".`,
     array: {
         type: () => 'Should be "array" type.',
-        maxItems: (maxItems: number) => `Should contain more than or equal ${maxItems} items.`,
-        minItems: (minItems: number) => `Should contain less than or equal ${minItems} items.`,
+        maxItems: (maxItems: number) => `Should contain less than or equal ${maxItems} items.`,
+        minItems: (minItems: number) => `Should contain more than or equal ${minItems} items.`,
         unique: () => 'All items should be unique.',
     },
+    path: () => 'Should not be subpath.',
 };

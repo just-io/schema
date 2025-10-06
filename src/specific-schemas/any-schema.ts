@@ -1,13 +1,19 @@
 import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, TypeSchema } from '../schema';
+import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schema';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default class AnySchema<L extends string> extends TypeSchema<any, L> {
+    @withDefault
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-    validate(value: unknown, _lang: L, _errorKeeper: ErrorKeeper<L>): value is any {
-        return true;
+    validate(
+        value: unknown,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<any, unknown> {
+        return { ok: true, value };
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -16,5 +22,19 @@ export default class AnySchema<L extends string> extends TypeSchema<any, L> {
             description: this.getDescription(lang),
             defaut: this.getDefault(),
         };
+    }
+
+    @withDefault
+    cast(
+        value: StringStructure,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        lang: L,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        useDefault: boolean,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ): Result<any, unknown> {
+        return { ok: true, value };
     }
 }

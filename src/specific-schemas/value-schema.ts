@@ -1,7 +1,7 @@
 import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, TypeSchema } from '../schema';
+import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schema';
 
 export default class ValueSchema<
     T extends string | number | boolean | null,
@@ -14,13 +14,20 @@ export default class ValueSchema<
         this.#expectedValue = expectedValue;
     }
 
-    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
+    @withDefault
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    validate(
+        value: unknown,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
         if (value !== this.#expectedValue) {
             errorKeeper.push(errorKeeper.formatters(lang).value(this.#expectedValue));
-            return false;
+            return { ok: false, error: true };
         }
 
-        return true;
+        return { ok: true, value: value as T };
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -65,5 +72,57 @@ export default class ValueSchema<
             description: this.getDescription(lang),
             defaut: this.getDefault(),
         };
+    }
+
+    @withDefault
+    cast(
+        value: StringStructure,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        if (typeof value !== 'string') {
+            errorKeeper.push(errorKeeper.formatters(lang).string.type());
+            return { ok: false, error: true };
+        }
+        if (typeof this.#expectedValue === 'string') {
+            if (value === this.#expectedValue) {
+                return { ok: true, value: this.#expectedValue };
+            }
+            errorKeeper.push(errorKeeper.formatters(lang).value(this.#expectedValue));
+            return { ok: false, error: true };
+        }
+        if (typeof this.#expectedValue === 'number') {
+            if (value !== '' && Number(value) === this.#expectedValue) {
+                return { ok: true, value: this.#expectedValue };
+            }
+            errorKeeper.push(errorKeeper.formatters(lang).value(this.#expectedValue));
+            return { ok: false, error: true };
+        }
+        if (typeof this.#expectedValue === 'boolean') {
+            if (this.#expectedValue) {
+                if (value !== '') {
+                    return { ok: true, value: this.#expectedValue };
+                }
+                errorKeeper.push(errorKeeper.formatters(lang).string.minLength(1));
+                return { ok: false, error: true };
+            } else {
+                if (value === '') {
+                    return { ok: true, value: this.#expectedValue };
+                }
+                errorKeeper.push(errorKeeper.formatters(lang).string.maxLength(0));
+                return { ok: false, error: true };
+            }
+        }
+        if (this.#expectedValue === null) {
+            if (value === '') {
+                return { ok: true, value: this.#expectedValue };
+            }
+            errorKeeper.push(errorKeeper.formatters(lang).string.maxLength(0));
+            return { ok: false, error: true };
+        }
+        errorKeeper.push(errorKeeper.formatters(lang).string.type());
+        return { ok: false, error: true };
     }
 }

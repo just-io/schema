@@ -1,7 +1,7 @@
 import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { TypeSchema, Schema, Defs } from '../schema';
+import { TypeSchema, Schema, Defs, StringStructure, Result, withDefault } from '../schema';
 
 export type GroupSchemas<T, K extends keyof T & string, L extends string> = T[K] extends string
     ? {
@@ -24,17 +24,23 @@ export default class GroupSchema<
         this.#groupSchemas = groupSchemas;
     }
 
-    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
+    @withDefault
+    validate(
+        value: unknown,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
         if (typeof value !== 'object' || value === null) {
             errorKeeper.push(errorKeeper.formatters(lang).object.type());
-            return false;
+            return { ok: false, error: true };
         }
         if (!(this.#key in value)) {
             errorKeeper.push(
                 errorKeeper.pointer.concat(this.#key),
                 errorKeeper.formatters(lang).object.existField(),
             );
-            return false;
+            return { ok: false, error: true };
         }
         const type = (value as Record<string, string>)[this.#key as string];
         if (!(type in this.#groupSchemas)) {
@@ -42,20 +48,15 @@ export default class GroupSchema<
                 errorKeeper.pointer.concat(this.#key),
                 errorKeeper.formatters(lang).object.oneOf(Object.keys(this.#groupSchemas)),
             );
-            return false;
+            return { ok: false, error: true };
         }
-        if (
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>).validate(
-                value,
-                lang,
-                errorKeeper,
-            )
-        ) {
-            return true;
-        }
-
-        return false;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>).validate(
+            value,
+            lang,
+            errorKeeper,
+            useDefault,
+        );
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -67,5 +68,40 @@ export default class GroupSchema<
             ),
             defaut: this.getDefault(),
         };
+    }
+
+    @withDefault
+    cast(
+        value: StringStructure,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        if (typeof value !== 'object' || Array.isArray(value) || value instanceof File) {
+            errorKeeper.push(errorKeeper.formatters(lang).object.type());
+            return { ok: false, error: true };
+        }
+        if (!(this.#key in value)) {
+            errorKeeper.push(
+                errorKeeper.pointer.concat(this.#key),
+                errorKeeper.formatters(lang).object.existField(),
+            );
+            return { ok: false, error: true };
+        }
+        const type = (value as Record<string, string>)[this.#key as string];
+        if (!(type in this.#groupSchemas)) {
+            errorKeeper.push(
+                errorKeeper.pointer.concat(this.#key),
+                errorKeeper.formatters(lang).object.oneOf(Object.keys(this.#groupSchemas)),
+            );
+            return { ok: false, error: true };
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>).cast(
+            value,
+            lang,
+            errorKeeper,
+            useDefault,
+        );
     }
 }

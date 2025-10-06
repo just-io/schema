@@ -16,6 +16,8 @@ import UnknownSchema from './specific-schemas/unknown-schema';
 import ValueSchema from './specific-schemas/value-schema';
 import { Schema } from './schema';
 import LazySchema from './specific-schemas/lazy-schema';
+import CustomSchema, { CustomSchemaParams } from './specific-schemas/custom-schema';
+import NullableSchema from './specific-schemas/nullable-schema';
 
 export function make<L extends string = 'default'>() {
     return {
@@ -30,6 +32,7 @@ export function make<L extends string = 'default'>() {
         undefined: () => new UndefinedSchema<L>(),
         union: <T>(...unionSchemas: Schema<T, L>[]) => new UnionSchema<T, L>(...unionSchemas),
         optional: <T>(schema: Schema<T, L>) => new OptionalSchema<T, L>(schema),
+        nullable: <T>(schema: Schema<T, L>) => new NullableSchema<T, L>(schema),
         group: <T, K extends keyof T & string>(key: K, groupSchemas: GroupSchemas<T, K, L>) =>
             new GroupSchema<T, K, L>(key, groupSchemas),
         extended: <T>(
@@ -42,6 +45,7 @@ export function make<L extends string = 'default'>() {
         structure: <T>(fieldSchemas: FieldSchemas<T, L>) => new StructureSchema<T, L>(fieldSchemas),
         record: <T>(valueSchema: Schema<T, L>) => new RecordSchema<T, L>(valueSchema),
         lazy: <T>(lazySchema: () => Schema<T, L>) => new LazySchema<T, L>(lazySchema),
+        custom: <T>(params: CustomSchemaParams<T, L>) => new CustomSchema<T, L>(params),
     };
 }
 

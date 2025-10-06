@@ -1,12 +1,16 @@
 export class Pointer {
-    #paths: (string | number)[];
+    #paths: string[];
 
     constructor(...paths: (string | number)[]) {
-        this.#paths = paths;
+        this.#paths = paths.map(String);
     }
 
     concat(...paths: (string | number)[]): Pointer {
-        return new Pointer(...this.#paths.concat(paths));
+        return new Pointer(...this.#paths.concat(paths.map(String)));
+    }
+
+    slice(start: number = 0, end = this.#paths.length): Pointer {
+        return new Pointer(...this.#paths.slice(start, end));
     }
 
     equal(pointer: Pointer): boolean {
@@ -20,11 +24,29 @@ export class Pointer {
         return pointer.#paths.every((path, i) => path === this.#paths[i]);
     }
 
-    toString(separator = '/', start = '/'): string {
-        return start + this.#paths.join(separator);
+    raw(): string[] {
+        return this.#paths;
     }
 
-    raw(): string[] {
-        return this.#paths.map(String);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    find<T = any>(structure: any): T | undefined {
+        let current = structure;
+        for (const path of this.#paths) {
+            if (!Array.isArray(current) || typeof current !== 'object' || current === null) {
+                return undefined;
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            current = current[path as any];
+        }
+
+        return current;
+    }
+
+    toString(separator = '/', ...roots: (string | number)[]): string {
+        return roots.concat(this.#paths).join(separator);
+    }
+
+    static fromString(pointer: string, separator = '/', rootsCount = 0): Pointer {
+        return new Pointer(...pointer.split(separator).slice(rootsCount));
     }
 }

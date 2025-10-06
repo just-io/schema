@@ -1,7 +1,7 @@
 import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, TypeSchema } from '../schema';
+import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schema';
 
 export default class StringSchema<T extends string, L extends string> extends TypeSchema<T, L> {
     #enum?: T[];
@@ -12,18 +12,7 @@ export default class StringSchema<T extends string, L extends string> extends Ty
 
     #regexp?: RegExp;
 
-    constructor(values: T[] = []) {
-        super();
-        if (values.length) {
-            this.#enum = values;
-        }
-    }
-
-    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
-        if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatters(lang).string.type());
-            return false;
-        }
+    #validate(value: string, lang: L, errorKeeper: ErrorKeeper<L>): boolean {
         if (this.#enum && !this.#enum.includes(value as T)) {
             errorKeeper.push(errorKeeper.formatters(lang).string.enum(this.#enum));
             return false;
@@ -44,6 +33,32 @@ export default class StringSchema<T extends string, L extends string> extends Ty
         return true;
     }
 
+    constructor(values: T[] = []) {
+        super();
+        if (values.length) {
+            this.#enum = values;
+        }
+    }
+
+    @withDefault
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    validate(
+        value: unknown,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        if (typeof value !== 'string') {
+            errorKeeper.push(errorKeeper.formatters(lang).string.type());
+            return { ok: false, error: true };
+        }
+        if (!this.#validate(value, lang, errorKeeper)) {
+            return { ok: false, error: true };
+        }
+
+        return { ok: true, value: value as T };
+    }
+
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {
             type: 'string',
@@ -55,6 +70,25 @@ export default class StringSchema<T extends string, L extends string> extends Ty
             pattern: this.#regexp?.source,
             defaut: this.getDefault(),
         };
+    }
+
+    @withDefault
+    cast(
+        value: StringStructure,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        if (typeof value !== 'string') {
+            errorKeeper.push(errorKeeper.formatters(lang).string.type());
+            return { ok: false, error: true };
+        }
+        if (!this.#validate(value, lang, errorKeeper)) {
+            return { ok: false, error: true };
+        }
+
+        return { ok: true, value: value as T };
     }
 
     enum(values: T[]): this {

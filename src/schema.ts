@@ -9,7 +9,7 @@ export class Defs<L extends string> {
     #defs: Map<Schema<unknown, L>, [Pointer, JSONSchemaValue]> = new Map();
 
     #makeRef(pointer: Pointer): string {
-        return `#/$defs${pointer.toString()}`;
+        return pointer.toString('/', '#', '$defs');
     }
 
     collectSchema(pointer: Pointer, schema: Schema<unknown, L>, lang: L): JSONSchemaValue {
@@ -47,22 +47,66 @@ export class Defs<L extends string> {
     makeDefs(): Record<string, JSONSchemaValue> {
         return Object.fromEntries(
             Array.from(this.#defs.entries()).map(([, [name, jsonSchema]]) => [
-                name.toString('/', ''),
+                name.toString('/'),
                 jsonSchema,
             ]),
         );
     }
 }
 
+export type ResultValue<T> = { ok: true; value: T };
+export type ResultError<E> = { ok: false; error: E };
+export type Result<T, E> = ResultValue<T> | ResultError<E>;
+
+export type StringStructure =
+    | undefined
+    | string
+    | File
+    | (string | File)[]
+    | {
+          [key: string]: StringStructure;
+      };
+
+export function withDefault<T, L extends string, V>(
+    method: (
+        value: V,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ) => Result<T, unknown>,
+) {
+    return function (
+        this: Schema<T, L>,
+        value: V,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        if (useDefault) {
+            const defValue = this.getDefault();
+            if (value === undefined && defValue !== undefined) {
+                return { ok: true, value: defValue };
+            }
+        }
+
+        return method.call(this, value, lang, errorKeeper, useDefault);
+    };
+}
+
 export abstract class Schema<T, L extends string> {
     /**
-     * Type guard for type T
+     * Validate value for type T and return valid value wrapped in type `Result`
      * @param value incoming value for checking
      * @param lang language for errors
      * @param errorKeeper structure for collecting validation errors
-     * @returns true if value has type T otherwise false
+     * @param useDefault use default value if current value queal undefined
      */
-    abstract validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T;
+    abstract validate(
+        value: unknown,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown>;
 
     /**
      * Private method for generating JSON Schema
@@ -77,11 +121,10 @@ export abstract class Schema<T, L extends string> {
      * @param value incoming value for checking
      * @param lang language for errors
      * @param errorKeeper structure for collecting validation errors
-     * @returns true if value has type T otherwise false
      */
-    check(value: unknown): value is T;
-    check(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T;
-    check(value: unknown, lang?: L, errorKeeper?: ErrorKeeper<L>): value is T {
+    assert(value: unknown): value is T;
+    assert(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T;
+    assert(value: unknown, lang?: L, errorKeeper?: ErrorKeeper<L>): value is T {
         if (lang && errorKeeper && !this.is(value, lang, errorKeeper)) {
             throw errorKeeper.makeErrorSet();
         }
@@ -93,22 +136,42 @@ export abstract class Schema<T, L extends string> {
     }
 
     /**
-     * Type guard for type T
+     * Check value for type T and return valid value wrapped in type `Result`
      * @param value incoming value for checking
      * @param lang language for errors
      * @param errorKeeper structure for collecting validation errors
-     * @returns true if value has type T otherwise false
+     */
+    check(value: unknown): Result<T, unknown>;
+    check(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): Result<T, unknown>;
+    check(value: unknown, lang?: L, errorKeeper?: ErrorKeeper<L>): Result<T, unknown> {
+        if (lang && errorKeeper) {
+            return this.validate(value, lang, errorKeeper, false);
+        }
+        const dummyErrorKeeper = new DummyErrorKeeper<'default'>({
+            default: defaultErrorFormatters,
+        });
+
+        return this.validate(value, 'default' as L, dummyErrorKeeper as DummyErrorKeeper<L>, false);
+    }
+
+    /**
+     * Type guard for type T returns true if value has type T otherwise false
+     * @param value incoming value for checking
+     * @param lang language for errors
+     * @param errorKeeper structure for collecting validation errors
      */
     is(value: unknown): value is T;
     is(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T;
     is(value: unknown, lang?: L, errorKeeper?: ErrorKeeper<L>): value is T {
         if (lang && errorKeeper) {
-            return this.validate(value, lang, errorKeeper);
+            return this.validate(value, lang, errorKeeper, false).ok;
         }
         const dummyErrorKeeper = new DummyErrorKeeper<'default'>({
             default: defaultErrorFormatters,
         });
-        return this.validate(value, 'default' as L, dummyErrorKeeper as DummyErrorKeeper<L>);
+
+        return this.validate(value, 'default' as L, dummyErrorKeeper as DummyErrorKeeper<L>, false)
+            .ok;
     }
 
     /**
@@ -124,6 +187,91 @@ export abstract class Schema<T, L extends string> {
         }
 
         return JSON.parse(JSON.stringify(jsonSchemaRoot));
+    }
+
+    getDefault(): T | undefined {
+        return undefined;
+    }
+
+    /**
+     * Cast value to type T and returns valid value wrapped in type `Result`
+     * @param value incoming value for checking
+     * @param lang language for errors
+     * @param errorKeeper structure for collecting validation errors
+     * @param useDefault use default value if current value queal undefined
+     */
+    abstract cast(
+        value: StringStructure,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown>;
+
+    #compose(
+        entries: [Pointer, string | File][],
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        const value: StringStructure = {};
+        for (const entry of entries) {
+            let current: StringStructure = value;
+            const paths = entry[0].raw();
+            for (let i = 0; i < paths.length; i++) {
+                if (
+                    typeof current !== 'object' ||
+                    Array.isArray(current) ||
+                    current instanceof File
+                ) {
+                    errorKeeper.push(entry[0], errorKeeper.formatters(lang).path());
+                    return { ok: false, error: true };
+                }
+                if (i === paths.length - 1) {
+                    if (Array.isArray(current[paths[i]])) {
+                        (current[paths[i]] as (string | File)[]).push(entry[1]);
+                    } else if (current[paths[i]] !== undefined) {
+                        current[paths[i]] = [current[paths[i]] as string | File, entry[1]];
+                    } else {
+                        current[paths[i]] = entry[1];
+                    }
+                } else {
+                    if (current[paths[i]] === undefined) {
+                        current[paths[i]] = {};
+                    }
+                    current = current[paths[i]];
+                }
+            }
+        }
+
+        return this.cast(value, lang, errorKeeper, useDefault);
+    }
+
+    compose(
+        source: FormData | URLSearchParams | Record<string, string | string[] | File | File[]>,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+        separator = '/',
+        rootsCount = 0,
+    ): Result<T, unknown> {
+        const entries: [Pointer, string | File][] = [];
+        if (source instanceof FormData || source instanceof URLSearchParams) {
+            source.forEach((value, key) => {
+                entries.push([Pointer.fromString(key, separator, rootsCount), value]);
+            });
+        } else {
+            Object.entries(source).forEach(([pointer, value]) => {
+                if (Array.isArray(value)) {
+                    for (const v of value) {
+                        entries.push([Pointer.fromString(pointer, separator, rootsCount), v]);
+                    }
+                } else {
+                    entries.push([Pointer.fromString(pointer, separator, rootsCount), value]);
+                }
+            });
+        }
+
+        return this.#compose(entries, lang, errorKeeper, useDefault);
     }
 }
 

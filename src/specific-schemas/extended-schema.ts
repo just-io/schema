@@ -1,7 +1,7 @@
 import { ErrorKeeper } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Schema } from '../schema';
+import { Defs, Result, Schema, StringStructure, withDefault } from '../schema';
 
 export type SpecifyingValidator<T, L extends string> = (
     value: T,
@@ -20,21 +20,49 @@ export default class ExtendedSchema<T, L extends string> extends Schema<T, L> {
         this.#specifyingValidators = specifyingValidators;
     }
 
-    validate(value: unknown, lang: L, errorKeeper: ErrorKeeper<L>): value is T {
-        if (!this.#schema.validate(value, lang, errorKeeper)) {
-            return false;
+    @withDefault
+    validate(
+        value: unknown,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        const result = this.#schema.validate(value, lang, errorKeeper, useDefault);
+        if (!result.ok) {
+            return { ok: false, error: true };
         }
         let isCorrectedValue = true;
         for (const validator of this.#specifyingValidators) {
-            if (!validator(value, lang, errorKeeper)) {
+            if (!validator(result.value, lang, errorKeeper)) {
                 isCorrectedValue = false;
             }
         }
 
-        return isCorrectedValue;
+        return isCorrectedValue ? { ok: true, value: result.value } : { ok: false, error: true };
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return this.#schema.makeJSONSchema(pointer, defs, lang);
+    }
+
+    @withDefault
+    cast(
+        value: StringStructure,
+        lang: L,
+        errorKeeper: ErrorKeeper<L>,
+        useDefault: boolean,
+    ): Result<T, unknown> {
+        const result = this.#schema.cast(value, lang, errorKeeper, useDefault);
+        if (!result.ok) {
+            return { ok: false, error: true };
+        }
+        let isCorrectedValue = true;
+        for (const validator of this.#specifyingValidators) {
+            if (!validator(result.value, lang, errorKeeper)) {
+                isCorrectedValue = false;
+            }
+        }
+
+        return isCorrectedValue ? { ok: true, value: result.value } : { ok: false, error: true };
     }
 }
