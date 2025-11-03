@@ -43,11 +43,11 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
     }
 
     @withDefault
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     validate(
         value: unknown,
         lang: L,
         errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, unknown> {
         if (typeof value !== 'number') {

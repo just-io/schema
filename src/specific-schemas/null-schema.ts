@@ -5,11 +5,11 @@ import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schem
 
 export default class NullSchema<L extends string> extends TypeSchema<null, L> {
     @withDefault
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     validate(
         value: unknown,
         lang: L,
         errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<null, unknown> {
         if (value !== null) {

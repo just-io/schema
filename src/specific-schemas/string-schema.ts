@@ -41,11 +41,11 @@ export default class StringSchema<T extends string, L extends string> extends Ty
     }
 
     @withDefault
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     validate(
         value: unknown,
         lang: L,
         errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, unknown> {
         if (typeof value !== 'string') {

@@ -37,17 +37,6 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
         this.#itemSchema = itemSchema;
     }
 
-    // #check<I>(method: 'validate', value: I[], lang: L, errorKeeper: ErrorKeeper<L>, useDefault: boolean, length: number): Result<T[], unknown>;
-    // #check<I>(method: 'cast', value: StringStructure[], lang: L, errorKeeper: ErrorKeeper<L>, useDefault: boolean, length: number): Result<T[], unknown>;
-    // #check<I>(method: 'cast' | 'validate', value: I[] | StringStructure[], lang: L, errorKeeper: ErrorKeeper<L>, useDefault: boolean, length: number): Result<T[], unknown> {
-    //     const itemValues = value
-    //         .map((item, i) => this.#itemSchema[method](item, lang, errorKeeper.child(i), useDefault))
-    //         .filter((result) => result.ok)
-    //         .map((result) => result.value);
-
-    //     return {ok: true, value: itemValues};
-    // }
-
     @withDefault
     validate(
         value: unknown,

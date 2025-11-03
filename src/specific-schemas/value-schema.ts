@@ -15,11 +15,11 @@ export default class ValueSchema<
     }
 
     @withDefault
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     validate(
         value: unknown,
         lang: L,
         errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, unknown> {
         if (value !== this.#expectedValue) {

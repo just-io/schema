@@ -1,6 +1,6 @@
 {
   "name": "@just-io/schema",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Declare schemas for validation and generation JSON schemas",
   "types": "dist/types",
   "main": "dist/cjs/index.js",
@@ -24,7 +24,8 @@
   "scripts": {
     "test": "tsc --noEmit && rm -rf test && tsc -p tsconfig.test.json && sh ./fixup.test.sh && node --test \"test/**/*.test.js\" && rm -rf test",
     "test:only": "tsc --noEmit && rm -rf test && tsc -p tsconfig.test.json && sh ./fixup.test.sh && node --test --test-only \"test/**/*.test.js\" && rm -rf test",
-    "lint": "eslint --fix src/. && prettier --write src/.",
+    "lint:fix": "eslint --fix src/. && prettier --write src/.",
+    "lint": "tsc --noEmit && eslint --quiet src/. && prettier --check src/.",
     "publish": "npm publish --access public",
     "version:patch": "npm version --no-git-tag-version patch",
     "version:minor": "npm version --no-git-tag-version minor",

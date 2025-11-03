@@ -6,12 +6,15 @@ import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schem
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default class AnySchema<L extends string> extends TypeSchema<any, L> {
     @withDefault
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
     validate(
         value: unknown,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         lang: L,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): Result<any, unknown> {
         return { ok: true, value };
     }

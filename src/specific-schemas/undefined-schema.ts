@@ -5,11 +5,11 @@ import { Schema, Defs, Result, StringStructure, withDefault } from '../schema';
 
 export default class UndefinedSchema<L extends string> extends Schema<undefined, L> {
     @withDefault
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     validate(
         value: unknown,
         lang: L,
         errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<undefined, unknown> {
         if (value !== undefined) {
@@ -21,7 +21,7 @@ export default class UndefinedSchema<L extends string> extends Schema<undefined,
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    makeJSONSchema(_pointer: Pointer, _defs: Defs<L>, _lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
         return {};
     }
 

@@ -114,7 +114,7 @@ export type JSONSchemaObject = {
     title?: string;
     description?: string;
     properties: Record<string, JSONSchemaValue>;
-    additionalProperties: false;
+    additionalProperties: false | JSONSchemaValue;
     required?: string[];
     defaut?: unknown;
 };

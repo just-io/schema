@@ -42,7 +42,10 @@ export function make<L extends string = 'default'>() {
         array: <T>(itemSchema: Schema<T, L>) => new ArraySchema<T, L>(itemSchema),
         tuple: <T extends unknown[]>(...tupleSchemas: TupleSchemas<T, L>) =>
             new TupleSchema<T, L>(...(tupleSchemas as { [I in keyof T]: Schema<T[I], L> })),
-        structure: <T>(fieldSchemas: FieldSchemas<T, L>) => new StructureSchema<T, L>(fieldSchemas),
+        structure: <T>(
+            fieldSchemas: FieldSchemas<T, L>,
+            additionalProps: false | Schema<unknown, L> = false,
+        ) => new StructureSchema<T, L>(fieldSchemas, additionalProps),
         record: <T>(valueSchema: Schema<T, L>) => new RecordSchema<T, L>(valueSchema),
         lazy: <T>(lazySchema: () => Schema<T, L>) => new LazySchema<T, L>(lazySchema),
         custom: <T>(params: CustomSchemaParams<T, L>) => new CustomSchema<T, L>(params),

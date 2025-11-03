@@ -19,6 +19,20 @@ describe('StructureSchema', () => {
             );
         });
 
+        test('should return value result when value has right type with additional properties', () => {
+            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            assert.ok(
+                new StructureSchema(
+                    {
+                        name: new StringSchema(),
+                        count: new NumberSchema(),
+                    },
+                    new NumberSchema(),
+                ).validate({ name: 'name', count: 12, total: 27 }, 'default', errorKeeper, false)
+                    .ok,
+            );
+        });
+
         test('should return error result when value has not right type and has errors', () => {
             const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
             assert.ok(
@@ -46,6 +60,27 @@ describe('StructureSchema', () => {
                 { pointer: ['prefix'], details: 'Should not be existed.' },
             ]);
         });
+
+        test('should return error result when value contains wrong additional properties', () => {
+            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            assert.ok(
+                !new StructureSchema(
+                    {
+                        name: new StringSchema(),
+                        count: new NumberSchema(),
+                    },
+                    new NumberSchema(),
+                ).validate(
+                    { name: 'name', count: 12, total: '27 pages' },
+                    'default',
+                    errorKeeper,
+                    false,
+                ).ok,
+            );
+            assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+                { pointer: ['total'], details: 'Should be "number" type.' },
+            ]);
+        });
     });
 
     describe('method cast', () => {
@@ -58,6 +93,20 @@ describe('StructureSchema', () => {
                     errorKeeper,
                     false,
                 ).ok,
+            );
+        });
+
+        test('should return value result when value has right type with additional properties', () => {
+            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            assert.ok(
+                new StructureSchema(
+                    {
+                        name: new StringSchema(),
+                        count: new NumberSchema(),
+                    },
+                    new NumberSchema(),
+                ).cast({ name: 'name', count: '12', total: '27' }, 'default', errorKeeper, false)
+                    .ok,
             );
         });
 
@@ -90,6 +139,27 @@ describe('StructureSchema', () => {
                 { pointer: ['name'], details: 'Should be existed.' },
                 { pointer: ['count'], details: 'Should be "number" type.' },
                 { pointer: ['prefix'], details: 'Should not be existed.' },
+            ]);
+        });
+
+        test('should return error result when value contains wrong additional properties', () => {
+            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            assert.ok(
+                !new StructureSchema(
+                    {
+                        name: new StringSchema(),
+                        count: new NumberSchema(),
+                    },
+                    new NumberSchema(),
+                ).cast(
+                    { name: 'name', count: '12', total: '27 pages' },
+                    'default',
+                    errorKeeper,
+                    false,
+                ).ok,
+            );
+            assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+                { pointer: ['total'], details: 'Should be "number" type.' },
             ]);
         });
     });

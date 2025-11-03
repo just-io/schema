@@ -16,12 +16,19 @@ export type FieldSchemas<T, L extends string> = {
     [K in keyof T]-?: Schema<T[K], L>;
 };
 
+// add additionalProps?
 export default class StructureSchema<T, L extends string> extends TypeSchema<T, L> {
     #fieldSchemas: FieldSchemas<T, L>;
 
-    constructor(fieldSchemas: FieldSchemas<T, L>) {
+    #additionalProps: false | Schema<unknown, L>;
+
+    constructor(
+        fieldSchemas: FieldSchemas<T, L>,
+        additionalProps: false | Schema<unknown, L> = false,
+    ) {
         super();
         this.#fieldSchemas = fieldSchemas;
+        this.#additionalProps = additionalProps;
     }
 
     @withDefault
@@ -64,14 +71,27 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
             .map((entry) => [entry[0], entry[1].value] as const);
 
         let isCorrectedValues = true;
-        const valueKeys = Object.keys(value);
-        for (const key of valueKeys) {
+        for (const key of Object.keys(value)) {
             if (!(key in this.#fieldSchemas)) {
-                errorKeeper.push(
-                    errorKeeper.pointer.concat(key),
-                    errorKeeper.formatters(lang).object.notexistField(),
-                );
-                isCorrectedValues = false;
+                if (this.#additionalProps) {
+                    const innerErrorKeeper = errorKeeper.fork(key);
+                    const result = this.#additionalProps.validate(
+                        (value as Record<string, unknown>)[key],
+                        lang,
+                        innerErrorKeeper,
+                        useDefault,
+                    );
+                    if (!result.ok) {
+                        innerErrorKeeper.flush();
+                        isCorrectedValues = false;
+                    }
+                } else {
+                    errorKeeper.push(
+                        errorKeeper.pointer.concat(key),
+                        errorKeeper.formatters(lang).object.notexistField(),
+                    );
+                    isCorrectedValues = false;
+                }
             }
         }
 
@@ -102,7 +122,9 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                     ];
                 }),
             ),
-            additionalProperties: false,
+            additionalProperties: this.#additionalProps
+                ? this.#additionalProps.makeJSONSchema(pointer.concat('property'), defs, lang)
+                : false,
             required: Object.entries(this.#fieldSchemas)
                 .map(([key, fieldSchema]) => {
                     return fieldSchema instanceof OptionalSchema ? '' : key;
@@ -150,14 +172,27 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
             .map((entry) => [entry[0], entry[1].value] as const);
 
         let isCorrectedValues = true;
-        const valueKeys = Object.keys(value);
-        for (const key of valueKeys) {
+        for (const key of Object.keys(value)) {
             if (!(key in this.#fieldSchemas)) {
-                errorKeeper.push(
-                    errorKeeper.pointer.concat(key),
-                    errorKeeper.formatters(lang).object.notexistField(),
-                );
-                isCorrectedValues = false;
+                if (this.#additionalProps) {
+                    const innerErrorKeeper = errorKeeper.fork(key);
+                    const result = this.#additionalProps.cast(
+                        value[key],
+                        lang,
+                        innerErrorKeeper,
+                        useDefault,
+                    );
+                    if (!result.ok) {
+                        innerErrorKeeper.flush();
+                        isCorrectedValues = false;
+                    }
+                } else {
+                    errorKeeper.push(
+                        errorKeeper.pointer.concat(key),
+                        errorKeeper.formatters(lang).object.notexistField(),
+                    );
+                    isCorrectedValues = false;
+                }
             }
         }
 

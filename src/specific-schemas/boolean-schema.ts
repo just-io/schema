@@ -5,11 +5,11 @@ import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schem
 
 export default class BooleanSchema<L extends string> extends TypeSchema<boolean, L> {
     @withDefault
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     validate(
         value: unknown,
         lang: L,
         errorKeeper: ErrorKeeper<L>,
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<boolean, unknown> {
         if (typeof value !== 'boolean') {
