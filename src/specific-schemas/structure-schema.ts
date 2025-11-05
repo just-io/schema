@@ -20,15 +20,11 @@ export type FieldSchemas<T, L extends string> = {
 export default class StructureSchema<T, L extends string> extends TypeSchema<T, L> {
     #fieldSchemas: FieldSchemas<T, L>;
 
-    #additionalProps: false | Schema<unknown, L>;
+    #additionalProps: false | Schema<unknown, L> = false;
 
-    constructor(
-        fieldSchemas: FieldSchemas<T, L>,
-        additionalProps: false | Schema<unknown, L> = false,
-    ) {
+    constructor(fieldSchemas: FieldSchemas<T, L>) {
         super();
         this.#fieldSchemas = fieldSchemas;
-        this.#additionalProps = additionalProps;
     }
 
     @withDefault
@@ -204,5 +200,10 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
             ok: true,
             value: Object.fromEntries(castedEntries) as T,
         };
+    }
+
+    additionalProps(additionalProps: false | Schema<unknown, L>): this {
+        this.#additionalProps = additionalProps;
+        return this;
     }
 }

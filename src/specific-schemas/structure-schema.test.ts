@@ -22,13 +22,12 @@ describe('StructureSchema', () => {
         test('should return value result when value has right type with additional properties', () => {
             const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
             assert.ok(
-                new StructureSchema(
-                    {
-                        name: new StringSchema(),
-                        count: new NumberSchema(),
-                    },
-                    new NumberSchema(),
-                ).validate({ name: 'name', count: 12, total: 27 }, 'default', errorKeeper, false)
+                new StructureSchema({
+                    name: new StringSchema(),
+                    count: new NumberSchema(),
+                })
+                    .additionalProps(new NumberSchema())
+                    .validate({ name: 'name', count: 12, total: 27 }, 'default', errorKeeper, false)
                     .ok,
             );
         });
@@ -64,18 +63,17 @@ describe('StructureSchema', () => {
         test('should return error result when value contains wrong additional properties', () => {
             const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
             assert.ok(
-                !new StructureSchema(
-                    {
-                        name: new StringSchema(),
-                        count: new NumberSchema(),
-                    },
-                    new NumberSchema(),
-                ).validate(
-                    { name: 'name', count: 12, total: '27 pages' },
-                    'default',
-                    errorKeeper,
-                    false,
-                ).ok,
+                !new StructureSchema({
+                    name: new StringSchema(),
+                    count: new NumberSchema(),
+                })
+                    .additionalProps(new NumberSchema())
+                    .validate(
+                        { name: 'name', count: 12, total: '27 pages' },
+                        'default',
+                        errorKeeper,
+                        false,
+                    ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                 { pointer: ['total'], details: 'Should be "number" type.' },
@@ -99,13 +97,12 @@ describe('StructureSchema', () => {
         test('should return value result when value has right type with additional properties', () => {
             const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
             assert.ok(
-                new StructureSchema(
-                    {
-                        name: new StringSchema(),
-                        count: new NumberSchema(),
-                    },
-                    new NumberSchema(),
-                ).cast({ name: 'name', count: '12', total: '27' }, 'default', errorKeeper, false)
+                new StructureSchema({
+                    name: new StringSchema(),
+                    count: new NumberSchema(),
+                })
+                    .additionalProps(new NumberSchema())
+                    .cast({ name: 'name', count: '12', total: '27' }, 'default', errorKeeper, false)
                     .ok,
             );
         });
@@ -145,18 +142,17 @@ describe('StructureSchema', () => {
         test('should return error result when value contains wrong additional properties', () => {
             const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
             assert.ok(
-                !new StructureSchema(
-                    {
-                        name: new StringSchema(),
-                        count: new NumberSchema(),
-                    },
-                    new NumberSchema(),
-                ).cast(
-                    { name: 'name', count: '12', total: '27 pages' },
-                    'default',
-                    errorKeeper,
-                    false,
-                ).ok,
+                !new StructureSchema({
+                    name: new StringSchema(),
+                    count: new NumberSchema(),
+                })
+                    .additionalProps(new NumberSchema())
+                    .cast(
+                        { name: 'name', count: '12', total: '27 pages' },
+                        'default',
+                        errorKeeper,
+                        false,
+                    ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                 { pointer: ['total'], details: 'Should be "number" type.' },
