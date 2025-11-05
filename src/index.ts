@@ -55,3 +55,5 @@ export function make<L extends string = 'default'>() {
 export * from './error-keeper';
 export * from './pointer';
 export * from './error-formatters';
+export * from './schema';
+export * from './json-schema';
