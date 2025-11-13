@@ -16,7 +16,7 @@ type RawValidationError = {
 export class ErrorSet<E> extends Error {
     #errors: E[];
 
-    constructor(errors: E[]) {
+    constructor(errors: E[] = []) {
         super();
         this.#errors = errors;
     }
