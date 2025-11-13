@@ -12,22 +12,12 @@ export default class UnionSchema<T, L extends string> extends TypeSchema<T, L> {
     }
 
     @withDefault
-    validate(
-        value: unknown,
-        lang: L,
-        errorKeeper: ErrorKeeper<L>,
-        useDefault: boolean,
-    ): Result<T, unknown> {
+    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
         const innerErrorKeeper = errorKeeper.fork();
         for (let i = 0; i < this.#schemas.length; i++) {
             const unionErrorKeeper = innerErrorKeeper.fork();
             unionErrorKeeper.group = i;
-            const castedValue = this.#schemas[i].validate(
-                value,
-                lang,
-                unionErrorKeeper,
-                useDefault,
-            );
+            const castedValue = this.#schemas[i].validate(value, unionErrorKeeper, useDefault);
             if (castedValue.ok) {
                 return castedValue;
             }
@@ -52,7 +42,6 @@ export default class UnionSchema<T, L extends string> extends TypeSchema<T, L> {
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T, unknown> {
@@ -60,7 +49,7 @@ export default class UnionSchema<T, L extends string> extends TypeSchema<T, L> {
         for (let i = 0; i < this.#schemas.length; i++) {
             const unionErrorKeeper = innerErrorKeeper.fork();
             unionErrorKeeper.group = i;
-            const castedValue = this.#schemas[i].cast(value, lang, unionErrorKeeper, useDefault);
+            const castedValue = this.#schemas[i].cast(value, unionErrorKeeper, useDefault);
             if (castedValue.ok) {
                 return castedValue;
             }

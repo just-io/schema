@@ -12,21 +12,21 @@ export default class StringSchema<T extends string, L extends string> extends Ty
 
     #regexp?: RegExp;
 
-    #validate(value: string, lang: L, errorKeeper: ErrorKeeper<L>): boolean {
+    #validate(value: string, errorKeeper: ErrorKeeper<L>): boolean {
         if (this.#enum && !this.#enum.includes(value as T)) {
-            errorKeeper.push(errorKeeper.formatters(lang).string.enum(this.#enum));
+            errorKeeper.push(errorKeeper.formatter.string.enum(this.#enum));
             return false;
         }
         if (this.#regexp && !this.#regexp.test(value)) {
-            errorKeeper.push(errorKeeper.formatters(lang).string.regexp(this.#regexp));
+            errorKeeper.push(errorKeeper.formatter.string.regexp(this.#regexp));
             return false;
         }
         if (this.#minLength !== undefined && value.length < this.#minLength) {
-            errorKeeper.push(errorKeeper.formatters(lang).string.minLength(this.#minLength));
+            errorKeeper.push(errorKeeper.formatter.string.minLength(this.#minLength));
             return false;
         }
         if (this.#maxLength !== undefined && value.length > this.#maxLength) {
-            errorKeeper.push(errorKeeper.formatters(lang).string.maxLength(this.#maxLength));
+            errorKeeper.push(errorKeeper.formatter.string.maxLength(this.#maxLength));
             return false;
         }
 
@@ -43,16 +43,15 @@ export default class StringSchema<T extends string, L extends string> extends Ty
     @withDefault
     validate(
         value: unknown,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, unknown> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatters(lang).string.type());
+            errorKeeper.push(errorKeeper.formatter.string.type());
             return { ok: false, error: true };
         }
-        if (!this.#validate(value, lang, errorKeeper)) {
+        if (!this.#validate(value, errorKeeper)) {
             return { ok: false, error: true };
         }
 
@@ -75,16 +74,15 @@ export default class StringSchema<T extends string, L extends string> extends Ty
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, unknown> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatters(lang).string.type());
+            errorKeeper.push(errorKeeper.formatter.string.type());
             return { ok: false, error: true };
         }
-        if (!this.#validate(value, lang, errorKeeper)) {
+        if (!this.#validate(value, errorKeeper)) {
             return { ok: false, error: true };
         }
 

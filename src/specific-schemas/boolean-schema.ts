@@ -7,13 +7,12 @@ export default class BooleanSchema<L extends string> extends TypeSchema<boolean,
     @withDefault
     validate(
         value: unknown,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<boolean, unknown> {
         if (typeof value !== 'boolean') {
-            errorKeeper.push(errorKeeper.formatters(lang).boolean());
+            errorKeeper.push(errorKeeper.formatter.boolean());
             return { ok: false, error: true };
         }
 
@@ -32,13 +31,12 @@ export default class BooleanSchema<L extends string> extends TypeSchema<boolean,
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<boolean, unknown> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatters(lang).string.type());
+            errorKeeper.push(errorKeeper.formatter.string.type());
             return { ok: false, error: true };
         }
         return { ok: true, value: value !== '' };

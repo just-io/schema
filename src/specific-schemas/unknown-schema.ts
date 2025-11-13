@@ -8,8 +8,6 @@ export default class UnknownSchema<L extends string> extends TypeSchema<unknown,
     validate(
         value: unknown,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        lang: L,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
@@ -28,8 +26,6 @@ export default class UnknownSchema<L extends string> extends TypeSchema<unknown,
     @withDefault
     cast(
         value: StringStructure,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        lang: L,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

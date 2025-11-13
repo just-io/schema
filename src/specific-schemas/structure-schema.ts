@@ -16,7 +16,6 @@ export type FieldSchemas<T, L extends string> = {
     [K in keyof T]-?: Schema<T[K], L>;
 };
 
-// add additionalProps?
 export default class StructureSchema<T, L extends string> extends TypeSchema<T, L> {
     #fieldSchemas: FieldSchemas<T, L>;
 
@@ -28,14 +27,9 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
     }
 
     @withDefault
-    validate(
-        value: unknown,
-        lang: L,
-        errorKeeper: ErrorKeeper<L>,
-        useDefault: boolean,
-    ): Result<T, unknown> {
+    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push(errorKeeper.formatters(lang).object.type());
+            errorKeeper.push(errorKeeper.formatter.object.type());
             return { ok: false, error: true };
         }
 
@@ -45,7 +39,6 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 const innerErrorKeeper = errorKeeper.fork(key);
                 const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].validate(
                     (value as Record<string, unknown>)[key],
-                    lang,
                     innerErrorKeeper,
                     useDefault,
                 );
@@ -54,7 +47,7 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                     if (!(key in value)) {
                         errorKeeper.push(
                             errorKeeper.pointer.concat(key),
-                            errorKeeper.formatters(lang).object.existField(),
+                            errorKeeper.formatter.object.existField(),
                         );
                         return [key, { ok: false, error: true }] as const;
                     } else {
@@ -73,7 +66,6 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                     const innerErrorKeeper = errorKeeper.fork(key);
                     const result = this.#additionalProps.validate(
                         (value as Record<string, unknown>)[key],
-                        lang,
                         innerErrorKeeper,
                         useDefault,
                     );
@@ -84,7 +76,7 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 } else {
                     errorKeeper.push(
                         errorKeeper.pointer.concat(key),
-                        errorKeeper.formatters(lang).object.notexistField(),
+                        errorKeeper.formatter.object.notexistField(),
                     );
                     isCorrectedValues = false;
                 }
@@ -133,12 +125,11 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T, unknown> {
         if (typeof value !== 'object' || Array.isArray(value) || value instanceof File) {
-            errorKeeper.push(errorKeeper.formatters(lang).object.type());
+            errorKeeper.push(errorKeeper.formatter.object.type());
             return { ok: false, error: true };
         }
 
@@ -148,7 +139,6 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 const innerErrorKeeper = errorKeeper.fork(key);
                 const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].cast(
                     value[key],
-                    lang,
                     innerErrorKeeper,
                     useDefault,
                 );
@@ -156,7 +146,7 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 if (!(key in value)) {
                     errorKeeper.push(
                         errorKeeper.pointer.concat(key),
-                        errorKeeper.formatters(lang).object.existField(),
+                        errorKeeper.formatter.object.existField(),
                     );
                     return [key, { ok: false, error: true }] as const;
                 } else {
@@ -174,7 +164,6 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                     const innerErrorKeeper = errorKeeper.fork(key);
                     const result = this.#additionalProps.cast(
                         value[key],
-                        lang,
                         innerErrorKeeper,
                         useDefault,
                     );
@@ -185,7 +174,7 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 } else {
                     errorKeeper.push(
                         errorKeeper.pointer.concat(key),
-                        errorKeeper.formatters(lang).object.notexistField(),
+                        errorKeeper.formatter.object.notexistField(),
                     );
                     isCorrectedValues = false;
                 }

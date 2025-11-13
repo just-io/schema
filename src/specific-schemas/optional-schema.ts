@@ -14,7 +14,6 @@ export default class OptionalSchema<T, L extends string> extends Schema<T | unde
     @withDefault
     validate(
         value: unknown,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T | undefined, unknown> {
@@ -22,7 +21,7 @@ export default class OptionalSchema<T, L extends string> extends Schema<T | unde
             return { ok: true, value: undefined };
         }
 
-        return this.#schema.validate(value, lang, errorKeeper, useDefault);
+        return this.#schema.validate(value, errorKeeper, useDefault);
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -32,7 +31,6 @@ export default class OptionalSchema<T, L extends string> extends Schema<T | unde
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T | undefined, unknown> {
@@ -40,6 +38,6 @@ export default class OptionalSchema<T, L extends string> extends Schema<T | unde
             return { ok: true, value: undefined };
         }
 
-        return this.#schema.cast(value, lang, errorKeeper, useDefault);
+        return this.#schema.cast(value, errorKeeper, useDefault);
     }
 }

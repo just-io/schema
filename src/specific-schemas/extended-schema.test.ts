@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { ErrorKeeper, defaultErrorFormatters } from '../index';
+import { ErrorKeeper, defaultErrorFormatter } from '../index';
 
 import ExtendedSchema from './extended-schema';
 import RecordSchema from './record-schema';
@@ -22,22 +22,22 @@ describe('ExtendedSchema', () => {
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 new ExtendedSchema(
                     new RecordSchema(new StringSchema()),
                     extendedValidator,
-                ).validate({ name: 'name', message: 'message' }, 'default', errorKeeper, false).ok,
+                ).validate({ name: 'name', message: 'message' }, errorKeeper, false).ok,
             );
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 !new ExtendedSchema(
                     new RecordSchema(new StringSchema()),
                     extendedValidator,
-                ).validate({}, 'default', errorKeeper, false).ok,
+                ).validate({}, errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                 { pointer: [], details: 'Should ne not empty.' },
@@ -47,11 +47,10 @@ describe('ExtendedSchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 new ExtendedSchema(new RecordSchema(new StringSchema()), extendedValidator).cast(
                     { name: 'name', message: 'message' },
-                    'default',
                     errorKeeper,
                     false,
                 ).ok,
@@ -59,11 +58,10 @@ describe('ExtendedSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 !new ExtendedSchema(new RecordSchema(new StringSchema()), extendedValidator).cast(
                     {},
-                    'default',
                     errorKeeper,
                     false,
                 ).ok,

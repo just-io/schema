@@ -12,13 +12,8 @@ export default class LazySchema<T, L extends string> extends Schema<T, L> {
     }
 
     @withDefault
-    validate(
-        value: unknown,
-        lang: L,
-        errorKeeper: ErrorKeeper<L>,
-        useDefault: boolean,
-    ): Result<T, unknown> {
-        return this.#lazySchema().validate(value, lang, errorKeeper, useDefault);
+    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
+        return this.#lazySchema().validate(value, errorKeeper, useDefault);
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -28,10 +23,9 @@ export default class LazySchema<T, L extends string> extends Schema<T, L> {
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T, unknown> {
-        return this.#lazySchema().cast(value, lang, errorKeeper, useDefault);
+        return this.#lazySchema().cast(value, errorKeeper, useDefault);
     }
 }

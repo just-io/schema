@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { make, ErrorKeeper, defaultErrorFormatters } from './index';
+import { make, ErrorKeeper, defaultErrorFormatter } from './index';
 import StructureSchema from './specific-schemas/structure-schema';
 
 const schemas = make<'default'>();
@@ -47,13 +47,13 @@ describe('Common schema methods', () => {
 
         describe('with Error Keeper', () => {
             test('should return true when value has right type', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
-                assert.ok(schemas.value('str').is('str', 'default', errorKeeper));
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+                assert.ok(schemas.value('str').is('str', errorKeeper));
             });
 
             test('should return false when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
-                assert.ok(!schemas.value('str').is(12, 'default', errorKeeper));
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+                assert.ok(!schemas.value('str').is(12, errorKeeper));
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                     { pointer: [], details: 'Should be equal "str".' },
                 ]);
@@ -72,13 +72,13 @@ describe('Common schema methods', () => {
 
         describe('with Error Keeper', () => {
             test('should return true when value has right type', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
-                assert.ok(schemas.value('str').assert('str', 'default', errorKeeper));
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+                assert.ok(schemas.value('str').assert('str', errorKeeper));
             });
 
             test('should throw error when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
-                assert.throws(() => schemas.value('str').assert(12, 'default', errorKeeper));
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+                assert.throws(() => schemas.value('str').assert(12, errorKeeper));
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                     { pointer: [], details: 'Should be equal "str".' },
                 ]);
@@ -97,13 +97,13 @@ describe('Common schema methods', () => {
 
         describe('with Error Keeper', () => {
             test('should return value result when value has right type', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
-                assert.ok(schemas.value('str').check('str', 'default', errorKeeper).ok);
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+                assert.ok(schemas.value('str').check('str', errorKeeper).ok);
             });
 
             test('should return error result when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
-                assert.ok(!schemas.value('str').check(12, 'default', errorKeeper).ok);
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+                assert.ok(!schemas.value('str').check(12, errorKeeper).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                     { pointer: [], details: 'Should be equal "str".' },
                 ]);
@@ -316,7 +316,7 @@ describe('Common schema methods', () => {
 
         describe('with Record', () => {
             test('should return value result when value has right type', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 const result = schema.compose(
                     {
                         name: 'The book',
@@ -329,7 +329,6 @@ describe('Common schema methods', () => {
                         tags: ['horror', 'adventure'],
                         available: 'available',
                     },
-                    'default',
                     errorKeeper,
                     false,
                     '/',
@@ -358,7 +357,7 @@ describe('Common schema methods', () => {
             });
 
             test('should return error result when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 const result = schema.compose(
                     {
                         title: 'The book',
@@ -370,7 +369,6 @@ describe('Common schema methods', () => {
                         'chapters/2/published': '',
                         'tags/check': ['horror', 'adveture'],
                     },
-                    'default',
                     errorKeeper,
                     false,
                     '/',
@@ -388,7 +386,7 @@ describe('Common schema methods', () => {
 
         describe('with URLSearchParams', () => {
             test('should return value result when value has right type', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 const urlSearchParams = new URLSearchParams([
                     ['name', 'The book'],
                     ['chapters/1/title', 'First'],
@@ -401,14 +399,7 @@ describe('Common schema methods', () => {
                     ['tags', 'adventure'],
                     ['available', 'available'],
                 ]);
-                const result = schema.compose(
-                    urlSearchParams,
-                    'default',
-                    errorKeeper,
-                    false,
-                    '/',
-                    0,
-                );
+                const result = schema.compose(urlSearchParams, errorKeeper, false, '/', 0);
                 assert.deepStrictEqual(result, {
                     ok: true,
                     value: {
@@ -432,7 +423,7 @@ describe('Common schema methods', () => {
             });
 
             test('should return error result when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 const urlSearchParams = new URLSearchParams([
                     ['title', 'The book'],
                     ['chapters/1/title', 'First'],
@@ -444,14 +435,7 @@ describe('Common schema methods', () => {
                     ['tags/check', 'horror'],
                     ['tags/check', 'adventure'],
                 ]);
-                const result = schema.compose(
-                    urlSearchParams,
-                    'default',
-                    errorKeeper,
-                    false,
-                    '/',
-                    0,
-                );
+                const result = schema.compose(urlSearchParams, errorKeeper, false, '/', 0);
                 assert.ok(!result.ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                     { pointer: ['name'], details: 'Should be existed.' },
@@ -464,7 +448,7 @@ describe('Common schema methods', () => {
 
         describe('with FormData', () => {
             test('should return value result when value has right type', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 const formData = new FormData();
                 formData.append('name', 'The book');
                 formData.append('chapters/1/title', 'First');
@@ -476,7 +460,7 @@ describe('Common schema methods', () => {
                 formData.append('tags', 'horror');
                 formData.append('tags', 'adventure');
                 formData.append('available', 'available');
-                const result = schema.compose(formData, 'default', errorKeeper, false, '/', 0);
+                const result = schema.compose(formData, errorKeeper, false, '/', 0);
                 assert.deepStrictEqual(result, {
                     ok: true,
                     value: {
@@ -500,7 +484,7 @@ describe('Common schema methods', () => {
             });
 
             test('should return error result when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+                const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 const formData = new FormData();
                 formData.append('title', 'The book');
                 formData.append('chapters/1/title', 'First');
@@ -511,7 +495,7 @@ describe('Common schema methods', () => {
                 formData.append('chapters/2/published', '');
                 formData.append('tags/check', 'horror');
                 formData.append('tags/check', 'adventure');
-                const result = schema.compose(formData, 'default', errorKeeper, false, '/', 0);
+                const result = schema.compose(formData, errorKeeper, false, '/', 0);
                 assert.ok(!result.ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                     { pointer: ['name'], details: 'Should be existed.' },
@@ -549,11 +533,10 @@ describe('Complex schema using', () => {
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 schema.validate(
                     { data: { id: 'none', type: '12', attributes: [{ a: '1' }, { b: 'c' }] } },
-                    'default',
                     errorKeeper,
                     false,
                 ).ok,
@@ -561,11 +544,10 @@ describe('Complex schema using', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 !schema.validate(
                     { data: { test: '12', attributes: [1, {}, 12] } },
-                    'default',
                     errorKeeper,
                     false,
                 ).ok,

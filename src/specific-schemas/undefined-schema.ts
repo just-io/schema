@@ -7,13 +7,12 @@ export default class UndefinedSchema<L extends string> extends Schema<undefined,
     @withDefault
     validate(
         value: unknown,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<undefined, unknown> {
         if (value !== undefined) {
-            errorKeeper.push(errorKeeper.formatters(lang).undefined());
+            errorKeeper.push(errorKeeper.formatter.undefined());
             return { ok: false, error: true };
         }
 
@@ -28,17 +27,16 @@ export default class UndefinedSchema<L extends string> extends Schema<undefined,
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<undefined, unknown> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatters(lang).string.type());
+            errorKeeper.push(errorKeeper.formatter.string.type());
             return { ok: false, error: true };
         }
         if (value !== '') {
-            errorKeeper.push(errorKeeper.formatters(lang).string.maxLength(0));
+            errorKeeper.push(errorKeeper.formatter.string.maxLength(0));
             return { ok: false, error: true };
         }
 

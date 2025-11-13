@@ -12,17 +12,17 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
 
     #unique?: boolean;
 
-    #validate(values: T[], lang: L, errorKeeper: ErrorKeeper<L>, length: number): boolean {
+    #validate(values: T[], errorKeeper: ErrorKeeper<L>, length: number): boolean {
         if (this.#maxItems !== undefined && length > this.#maxItems) {
-            errorKeeper.push(errorKeeper.formatters(lang).array.maxItems(this.#maxItems));
+            errorKeeper.push(errorKeeper.formatter.array.maxItems(this.#maxItems));
             return false;
         }
         if (this.#minItems !== undefined && length < this.#minItems) {
-            errorKeeper.push(errorKeeper.formatters(lang).array.minItems(this.#minItems));
+            errorKeeper.push(errorKeeper.formatter.array.minItems(this.#minItems));
             return false;
         }
         if (this.#unique && length !== new Set(values).size) {
-            errorKeeper.push(errorKeeper.formatters(lang).array.unique());
+            errorKeeper.push(errorKeeper.formatter.array.unique());
             return false;
         }
         if (values.length !== length) {
@@ -40,22 +40,19 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
     @withDefault
     validate(
         value: unknown,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T[], unknown> {
         if (!Array.isArray(value)) {
-            errorKeeper.push(errorKeeper.formatters(lang).array.type());
+            errorKeeper.push(errorKeeper.formatter.array.type());
             return { ok: false, error: true };
         }
         const itemValues = value
-            .map((item, i) =>
-                this.#itemSchema.validate(item, lang, errorKeeper.child(i), useDefault),
-            )
+            .map((item, i) => this.#itemSchema.validate(item, errorKeeper.child(i), useDefault))
             .filter((result) => result.ok)
             .map((result) => result.value);
 
-        if (!this.#validate(itemValues, lang, errorKeeper, value.length)) {
+        if (!this.#validate(itemValues, errorKeeper, value.length)) {
             return { ok: false, error: true };
         }
 
@@ -65,12 +62,11 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T[], unknown> {
         if (value === undefined || value instanceof File) {
-            errorKeeper.push(errorKeeper.formatters(lang).array.type());
+            errorKeeper.push(errorKeeper.formatter.array.type());
             return { ok: false, error: true };
         }
         const array = Array.isArray(value)
@@ -83,11 +79,11 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
               );
 
         const itemValues = array
-            .map((item, i) => this.#itemSchema.cast(item, lang, errorKeeper.child(i), useDefault))
+            .map((item, i) => this.#itemSchema.cast(item, errorKeeper.child(i), useDefault))
             .filter((result) => result.ok)
             .map((result) => result.value);
 
-        if (!this.#validate(itemValues, lang, errorKeeper, array.length)) {
+        if (!this.#validate(itemValues, errorKeeper, array.length)) {
             return { ok: false, error: true };
         }
 

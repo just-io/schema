@@ -17,13 +17,12 @@ export default class ValueSchema<
     @withDefault
     validate(
         value: unknown,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, unknown> {
         if (value !== this.#expectedValue) {
-            errorKeeper.push(errorKeeper.formatters(lang).value(this.#expectedValue));
+            errorKeeper.push(errorKeeper.formatter.value(this.#expectedValue));
             return { ok: false, error: true };
         }
 
@@ -77,27 +76,26 @@ export default class ValueSchema<
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, unknown> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatters(lang).string.type());
+            errorKeeper.push(errorKeeper.formatter.string.type());
             return { ok: false, error: true };
         }
         if (typeof this.#expectedValue === 'string') {
             if (value === this.#expectedValue) {
                 return { ok: true, value: this.#expectedValue };
             }
-            errorKeeper.push(errorKeeper.formatters(lang).value(this.#expectedValue));
+            errorKeeper.push(errorKeeper.formatter.value(this.#expectedValue));
             return { ok: false, error: true };
         }
         if (typeof this.#expectedValue === 'number') {
             if (value !== '' && Number(value) === this.#expectedValue) {
                 return { ok: true, value: this.#expectedValue };
             }
-            errorKeeper.push(errorKeeper.formatters(lang).value(this.#expectedValue));
+            errorKeeper.push(errorKeeper.formatter.value(this.#expectedValue));
             return { ok: false, error: true };
         }
         if (typeof this.#expectedValue === 'boolean') {
@@ -105,13 +103,13 @@ export default class ValueSchema<
                 if (value !== '') {
                     return { ok: true, value: this.#expectedValue };
                 }
-                errorKeeper.push(errorKeeper.formatters(lang).string.minLength(1));
+                errorKeeper.push(errorKeeper.formatter.string.minLength(1));
                 return { ok: false, error: true };
             } else {
                 if (value === '') {
                     return { ok: true, value: this.#expectedValue };
                 }
-                errorKeeper.push(errorKeeper.formatters(lang).string.maxLength(0));
+                errorKeeper.push(errorKeeper.formatter.string.maxLength(0));
                 return { ok: false, error: true };
             }
         }
@@ -119,10 +117,10 @@ export default class ValueSchema<
             if (value === '') {
                 return { ok: true, value: this.#expectedValue };
             }
-            errorKeeper.push(errorKeeper.formatters(lang).string.maxLength(0));
+            errorKeeper.push(errorKeeper.formatter.string.maxLength(0));
             return { ok: false, error: true };
         }
-        errorKeeper.push(errorKeeper.formatters(lang).string.type());
+        errorKeeper.push(errorKeeper.formatter.string.type());
         return { ok: false, error: true };
     }
 }

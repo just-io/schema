@@ -22,12 +22,11 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
     @withDefault
     validate(
         value: unknown,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<Record<string, T>, unknown> {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push(errorKeeper.formatters(lang).object.type());
+            errorKeeper.push(errorKeeper.formatter.object.type());
             return { ok: false, error: true };
         }
         const entries = Object.entries(value);
@@ -38,7 +37,6 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
                         entry[0],
                         this.#valueSchema.validate(
                             entry[1],
-                            lang,
                             errorKeeper.child(entry[0]),
                             useDefault,
                         ),
@@ -73,7 +71,6 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<Record<string, T>, unknown> {
@@ -83,7 +80,7 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
             Array.isArray(value) ||
             value instanceof File
         ) {
-            errorKeeper.push(errorKeeper.formatters(lang).object.type());
+            errorKeeper.push(errorKeeper.formatter.object.type());
             return { ok: false, error: true };
         }
         const entries = Object.entries(value);
@@ -92,12 +89,7 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
                 (entry) =>
                     [
                         entry[0],
-                        this.#valueSchema.cast(
-                            entry[1],
-                            lang,
-                            errorKeeper.child(entry[0]),
-                            useDefault,
-                        ),
+                        this.#valueSchema.cast(entry[1], errorKeeper.child(entry[0]), useDefault),
                     ] as const,
             )
             .filter((entry): entry is [string, ResultValue<T>] => entry[1].ok)

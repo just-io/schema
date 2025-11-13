@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { ErrorKeeper, defaultErrorFormatters } from '../index';
+import { ErrorKeeper, defaultErrorFormatter } from '../index';
 
 import LaySchema from './lazy-schema';
 import StringSchema from './string-schema';
@@ -28,7 +28,7 @@ describe('LaySchema', () => {
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 lazySchema.validate(
                     {
@@ -47,7 +47,6 @@ describe('LaySchema', () => {
                             },
                         ],
                     },
-                    'default',
                     errorKeeper,
                     false,
                 ).ok,
@@ -55,7 +54,7 @@ describe('LaySchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 !lazySchema.validate(
                     {
@@ -74,7 +73,6 @@ describe('LaySchema', () => {
                             },
                         ],
                     },
-                    'default',
                     errorKeeper,
                     false,
                 ).ok,
@@ -102,7 +100,7 @@ describe('LaySchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 lazySchema.cast(
                     {
@@ -121,7 +119,6 @@ describe('LaySchema', () => {
                             },
                         },
                     },
-                    'default',
                     errorKeeper,
                     false,
                 ).ok,
@@ -129,7 +126,7 @@ describe('LaySchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
                 !lazySchema.cast(
                     {
@@ -150,7 +147,6 @@ describe('LaySchema', () => {
                             },
                         },
                     },
-                    'default',
                     errorKeeper,
                     false,
                 ).ok,

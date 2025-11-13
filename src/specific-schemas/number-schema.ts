@@ -12,22 +12,22 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
 
     #maximum?: number;
 
-    #validate(value: number, lang: L, errorKeeper: ErrorKeeper<L>): boolean {
+    #validate(value: number, errorKeeper: ErrorKeeper<L>): boolean {
         if (this.#enum && !this.#enum.includes(value as T)) {
-            errorKeeper.push(errorKeeper.formatters(lang).number.enum(this.#enum));
+            errorKeeper.push(errorKeeper.formatter.number.enum(this.#enum));
             return false;
         }
         if (this.#minimum !== undefined && value < this.#minimum) {
-            errorKeeper.push(errorKeeper.formatters(lang).number.minimum(this.#minimum));
+            errorKeeper.push(errorKeeper.formatter.number.minimum(this.#minimum));
             return false;
         }
         if (this.#maximum !== undefined && value > this.#maximum) {
-            errorKeeper.push(errorKeeper.formatters(lang).number.maximum(this.#maximum));
+            errorKeeper.push(errorKeeper.formatter.number.maximum(this.#maximum));
             return false;
         }
         if (this.#integer) {
             if (value % 1 !== 0) {
-                errorKeeper.push(errorKeeper.formatters(lang).number.integer());
+                errorKeeper.push(errorKeeper.formatter.number.integer());
                 return false;
             }
         }
@@ -45,17 +45,16 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
     @withDefault
     validate(
         value: unknown,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, unknown> {
         if (typeof value !== 'number') {
-            errorKeeper.push(errorKeeper.formatters(lang).number.type());
+            errorKeeper.push(errorKeeper.formatter.number.type());
             return { ok: false, error: true };
         }
 
-        if (!this.#validate(value, lang, errorKeeper)) {
+        if (!this.#validate(value, errorKeeper)) {
             return { ok: false, error: true };
         }
 
@@ -77,22 +76,21 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, unknown> {
         if (typeof value !== 'string' || value === '') {
-            errorKeeper.push(errorKeeper.formatters(lang).number.type());
+            errorKeeper.push(errorKeeper.formatter.number.type());
             return { ok: false, error: true };
         }
 
         const castedValue = Number(value);
         if (Number.isNaN(castedValue)) {
-            errorKeeper.push(errorKeeper.formatters(lang).number.type());
+            errorKeeper.push(errorKeeper.formatter.number.type());
             return { ok: false, error: true };
         }
-        if (!this.#validate(castedValue, lang, errorKeeper)) {
+        if (!this.#validate(castedValue, errorKeeper)) {
             return { ok: false, error: true };
         }
 

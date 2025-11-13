@@ -7,7 +7,6 @@ export type CustomSchemaParams<T, L extends string> = {
     validate(
         this: CustomSchema<T, L>,
         value: unknown,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T, unknown>;
@@ -20,7 +19,6 @@ export type CustomSchemaParams<T, L extends string> = {
     cast(
         this: CustomSchema<T, L>,
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T, unknown>;
@@ -35,13 +33,8 @@ export default class CustomSchema<T, L extends string> extends TypeSchema<T, L> 
     }
 
     @withDefault
-    validate(
-        value: unknown,
-        lang: L,
-        errorKeeper: ErrorKeeper<L>,
-        useDefault: boolean,
-    ): Result<T, unknown> {
-        return this.#params.validate.call(this, value, lang, errorKeeper, useDefault);
+    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
+        return this.#params.validate.call(this, value, errorKeeper, useDefault);
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -51,10 +44,9 @@ export default class CustomSchema<T, L extends string> extends TypeSchema<T, L> 
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T, unknown> {
-        return this.#params.cast.call(this, value, lang, errorKeeper, useDefault);
+        return this.#params.cast.call(this, value, errorKeeper, useDefault);
     }
 }

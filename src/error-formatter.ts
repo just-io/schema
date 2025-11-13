@@ -1,4 +1,4 @@
-export interface ErrorFormatters {
+export interface ErrorFormatter {
     lang: string;
     string: {
         type: () => string;
@@ -33,7 +33,7 @@ export interface ErrorFormatters {
     path: () => string;
 }
 
-export const defaultErrorFormatters: ErrorFormatters = {
+export const defaultErrorFormatter: ErrorFormatter = {
     lang: 'default',
     string: {
         type: () => 'Should be "string" type.',

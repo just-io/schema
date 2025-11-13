@@ -21,19 +21,14 @@ export default class ExtendedSchema<T, L extends string> extends Schema<T, L> {
     }
 
     @withDefault
-    validate(
-        value: unknown,
-        lang: L,
-        errorKeeper: ErrorKeeper<L>,
-        useDefault: boolean,
-    ): Result<T, unknown> {
-        const result = this.#schema.validate(value, lang, errorKeeper, useDefault);
+    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
+        const result = this.#schema.validate(value, errorKeeper, useDefault);
         if (!result.ok) {
             return { ok: false, error: true };
         }
         let isCorrectedValue = true;
         for (const validator of this.#specifyingValidators) {
-            if (!validator(result.value, lang, errorKeeper)) {
+            if (!validator(result.value, errorKeeper.lang as L, errorKeeper as ErrorKeeper<L>)) {
                 isCorrectedValue = false;
             }
         }
@@ -48,17 +43,16 @@ export default class ExtendedSchema<T, L extends string> extends Schema<T, L> {
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T, unknown> {
-        const result = this.#schema.cast(value, lang, errorKeeper, useDefault);
+        const result = this.#schema.cast(value, errorKeeper, useDefault);
         if (!result.ok) {
             return { ok: false, error: true };
         }
         let isCorrectedValue = true;
         for (const validator of this.#specifyingValidators) {
-            if (!validator(result.value, lang, errorKeeper)) {
+            if (!validator(result.value, errorKeeper.lang as L, errorKeeper as ErrorKeeper<L>)) {
                 isCorrectedValue = false;
             }
         }

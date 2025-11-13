@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { ErrorKeeper, defaultErrorFormatters } from '../index';
+import { ErrorKeeper, defaultErrorFormatter } from '../index';
 
 import GroupSchema from './group-schema';
 import StructureSchema from './structure-schema';
@@ -26,30 +26,17 @@ describe('GroupSchema', () => {
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
-                groupSchema.validate(
-                    { op: 'get', url: 'example.com' },
-                    'default',
-                    errorKeeper,
-                    false,
-                ).ok,
+                groupSchema.validate({ op: 'get', url: 'example.com' }, errorKeeper, false).ok,
             );
-            assert.ok(
-                groupSchema.validate({ op: 'add', data: { a: 12 } }, 'default', errorKeeper, false)
-                    .ok,
-            );
+            assert.ok(groupSchema.validate({ op: 'add', data: { a: 12 } }, errorKeeper, false).ok);
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
-                !groupSchema.validate(
-                    { op: 'delete', path: 'example.com' },
-                    'default',
-                    errorKeeper,
-                    false,
-                ).ok,
+                !groupSchema.validate({ op: 'delete', path: 'example.com' }, errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                 { pointer: ['op'], details: 'Should be one of "get", "add".' },
@@ -59,26 +46,15 @@ describe('GroupSchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
-            assert.ok(
-                groupSchema.cast({ op: 'get', url: 'example.com' }, 'default', errorKeeper, false)
-                    .ok,
-            );
-            assert.ok(
-                groupSchema.cast({ op: 'add', data: { a: '12' } }, 'default', errorKeeper, false)
-                    .ok,
-            );
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+            assert.ok(groupSchema.cast({ op: 'get', url: 'example.com' }, errorKeeper, false).ok);
+            assert.ok(groupSchema.cast({ op: 'add', data: { a: '12' } }, errorKeeper, false).ok);
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper({ default: defaultErrorFormatters });
+            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(
-                !groupSchema.cast(
-                    { op: 'delete', path: 'example.com' },
-                    'default',
-                    errorKeeper,
-                    false,
-                ).ok,
+                !groupSchema.cast({ op: 'delete', path: 'example.com' }, errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                 { pointer: ['op'], details: 'Should be one of "get", "add".' },

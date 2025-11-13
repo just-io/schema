@@ -28,25 +28,11 @@ export class Pointer {
         return this.#paths;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    find<T = any>(structure: any): T | undefined {
-        let current = structure;
-        for (const path of this.#paths) {
-            if (!Array.isArray(current) || typeof current !== 'object' || current === null) {
-                return undefined;
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            current = current[path as any];
-        }
-
-        return current;
-    }
-
     toString(separator = '/', ...roots: (string | number)[]): string {
         return roots.concat(this.#paths).join(separator);
     }
 
-    static fromString(pointer: string, separator = '/', rootsCount = 0): Pointer {
-        return new Pointer(...pointer.split(separator).slice(rootsCount));
+    static fromString(pointer: string, separator = '/', rootSlicedCount = 0): Pointer {
+        return new Pointer(...pointer.split(separator).slice(rootSlicedCount));
     }
 }

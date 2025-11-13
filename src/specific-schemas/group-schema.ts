@@ -25,20 +25,15 @@ export default class GroupSchema<
     }
 
     @withDefault
-    validate(
-        value: unknown,
-        lang: L,
-        errorKeeper: ErrorKeeper<L>,
-        useDefault: boolean,
-    ): Result<T, unknown> {
+    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push(errorKeeper.formatters(lang).object.type());
+            errorKeeper.push(errorKeeper.formatter.object.type());
             return { ok: false, error: true };
         }
         if (!(this.#key in value)) {
             errorKeeper.push(
                 errorKeeper.pointer.concat(this.#key),
-                errorKeeper.formatters(lang).object.existField(),
+                errorKeeper.formatter.object.existField(),
             );
             return { ok: false, error: true };
         }
@@ -46,14 +41,13 @@ export default class GroupSchema<
         if (!(type in this.#groupSchemas)) {
             errorKeeper.push(
                 errorKeeper.pointer.concat(this.#key),
-                errorKeeper.formatters(lang).object.oneOf(Object.keys(this.#groupSchemas)),
+                errorKeeper.formatter.object.oneOf(Object.keys(this.#groupSchemas)),
             );
             return { ok: false, error: true };
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>).validate(
             value,
-            lang,
             errorKeeper,
             useDefault,
         );
@@ -73,18 +67,17 @@ export default class GroupSchema<
     @withDefault
     cast(
         value: StringStructure,
-        lang: L,
         errorKeeper: ErrorKeeper<L>,
         useDefault: boolean,
     ): Result<T, unknown> {
         if (typeof value !== 'object' || Array.isArray(value) || value instanceof File) {
-            errorKeeper.push(errorKeeper.formatters(lang).object.type());
+            errorKeeper.push(errorKeeper.formatter.object.type());
             return { ok: false, error: true };
         }
         if (!(this.#key in value)) {
             errorKeeper.push(
                 errorKeeper.pointer.concat(this.#key),
-                errorKeeper.formatters(lang).object.existField(),
+                errorKeeper.formatter.object.existField(),
             );
             return { ok: false, error: true };
         }
@@ -92,14 +85,13 @@ export default class GroupSchema<
         if (!(type in this.#groupSchemas)) {
             errorKeeper.push(
                 errorKeeper.pointer.concat(this.#key),
-                errorKeeper.formatters(lang).object.oneOf(Object.keys(this.#groupSchemas)),
+                errorKeeper.formatter.object.oneOf(Object.keys(this.#groupSchemas)),
             );
             return { ok: false, error: true };
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>).cast(
             value,
-            lang,
             errorKeeper,
             useDefault,
         );

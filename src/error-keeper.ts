@@ -1,4 +1,4 @@
-import { ErrorFormatters } from './error-formatters';
+import { ErrorFormatter } from './error-formatter';
 import { Pointer } from './pointer';
 
 export type ValidationError = {
@@ -13,12 +13,28 @@ type RawValidationError = {
     group?: number;
 };
 
-export class ErrorSet extends Error {
-    #errors: ValidationError[];
+export class ErrorSet<E> extends Error {
+    #errors: E[];
 
-    constructor(errors: ValidationError[]) {
+    constructor(errors: E[]) {
         super();
         this.#errors = errors;
+    }
+
+    add(...errors: E[]): this {
+        this.#errors.push(...errors);
+
+        return this;
+    }
+
+    append(handlingErrorSet: ErrorSet<E>): this {
+        this.#errors.push(...handlingErrorSet.errors);
+
+        return this;
+    }
+
+    get errors(): E[] {
+        return this.#errors;
     }
 
     toJSON() {
@@ -31,17 +47,26 @@ export class ErrorSet extends Error {
 export class ErrorKeeper<L extends string> {
     #errors: RawValidationError[] = [];
 
-    #formatters: Record<L, ErrorFormatters>;
+    #formatter: ErrorFormatter;
+
+    #lang: L;
 
     #pointer: Pointer;
 
     #group: number | undefined;
 
-    constructor(formatters: Record<L, ErrorFormatters>);
-    constructor(pointer: Pointer, formatters: Record<L, ErrorFormatters>);
-    constructor(arg1: Pointer | Record<L, ErrorFormatters>, arg2?: Record<L, ErrorFormatters>) {
-        this.#pointer = arg1 instanceof Pointer ? arg1 : new Pointer();
-        this.#formatters = (arg1 instanceof Pointer ? arg2 : arg1) as Record<L, ErrorFormatters>;
+    constructor(lang: L, formatter: ErrorFormatter);
+    constructor(pointer: Pointer, lang: L, formatter: ErrorFormatter);
+    constructor(arg1: Pointer | L, arg2: L | ErrorFormatter, formatter?: ErrorFormatter) {
+        if (arg1 instanceof Pointer) {
+            this.#pointer = arg1;
+            this.#lang = arg2 as L;
+            this.#formatter = formatter as ErrorFormatter;
+        } else {
+            this.#pointer = new Pointer();
+            this.#lang = arg1 as L;
+            this.#formatter = arg2 as ErrorFormatter;
+        }
     }
 
     forEach(callbackfn: (error: RawValidationError) => void): void {
@@ -50,6 +75,10 @@ export class ErrorKeeper<L extends string> {
 
     hasErrors(): boolean {
         return this.#errors.length > 0;
+    }
+
+    get lang(): L {
+        return this.#lang;
     }
 
     push(pointer: Pointer, details: string, group?: number): void;
@@ -69,8 +98,8 @@ export class ErrorKeeper<L extends string> {
         return this.#pointer;
     }
 
-    formatters(lang: L): ErrorFormatters {
-        return this.#formatters[lang];
+    get formatter(): ErrorFormatter {
+        return this.#formatter;
     }
 
     set group(group: number) {
@@ -83,7 +112,12 @@ export class ErrorKeeper<L extends string> {
 
     child(...paths: (string | number)[]): ErrorKeeperWithParent<L> {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        return new ErrorKeeperWithParent(this, this.#pointer.concat(...paths), this.#formatters);
+        return new ErrorKeeperWithParent(
+            this,
+            this.#pointer.concat(...paths),
+            this.#lang,
+            this.#formatter,
+        );
     }
 
     fork(...paths: (string | number)[]): ErrorKeeperWithParent<L> {
@@ -91,7 +125,8 @@ export class ErrorKeeper<L extends string> {
         const errorKeeperWithParent = new ErrorKeeperWithParent(
             this,
             this.#pointer.concat(...paths),
-            this.#formatters,
+            this.#lang,
+            this.#formatter,
         );
         errorKeeperWithParent.mode = 'on-demand';
         return errorKeeperWithParent;
@@ -122,7 +157,7 @@ export class ErrorKeeper<L extends string> {
         });
     }
 
-    makeErrorSet(): ErrorSet {
+    makeErrorSet(): ErrorSet<ValidationError> {
         return new ErrorSet(this.makeStringErrors());
     }
 
@@ -139,8 +174,8 @@ export class ErrorKeeperWithParent<L extends string> extends ErrorKeeper<L> {
 
     #parent: ErrorKeeper<L>;
 
-    constructor(parent: ErrorKeeper<L>, pointer: Pointer, formatters: Record<L, ErrorFormatters>) {
-        super(pointer, formatters);
+    constructor(parent: ErrorKeeper<L>, pointer: Pointer, lang: L, formatter: ErrorFormatter) {
+        super(pointer, lang, formatter);
         this.#parent = parent;
     }
 

@@ -9,8 +9,6 @@ export default class AnySchema<L extends string> extends TypeSchema<any, L> {
     validate(
         value: unknown,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        lang: L,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
@@ -30,8 +28,6 @@ export default class AnySchema<L extends string> extends TypeSchema<any, L> {
     @withDefault
     cast(
         value: StringStructure,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        lang: L,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         errorKeeper: ErrorKeeper<L>,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
