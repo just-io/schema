@@ -165,10 +165,10 @@ export class ErrorKeeper<L extends string> {
     }
 
     makeErrorSet(): ErrorSet<ValidationError>;
-    makeErrorSet<T>(transform: (error: ValidationError) => T): { errors: T[] };
+    makeErrorSet<T>(transform: (error: ValidationError) => T): ErrorSet<T>;
     makeErrorSet<T = ValidationError>(
         transform?: (error: ValidationError, i: number, errors: ValidationError[]) => T,
-    ): { errors: (T | ValidationError)[] } {
+    ): ErrorSet<ValidationError | T> {
         if (transform) {
             return new ErrorSet(this.makeStringErrors().map(transform));
         }
