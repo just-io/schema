@@ -37,9 +37,9 @@ export class ErrorSet<E> extends Error {
         return this.#errors;
     }
 
-    toJSON(): {errors: E[]};
-    toJSON<T>(transform: (error: E) => T): {errors: T[]};
-    toJSON<T = E>(transform?: (error: E, i: number, errors: E[]) => T): {errors: (T | E)[]} {
+    toJSON(): { errors: E[] };
+    toJSON<T>(transform: (error: E, i: number, errors: E[]) => T): { errors: T[] };
+    toJSON<T = E>(transform?: (error: E, i: number, errors: E[]) => T): { errors: (T | E)[] } {
         if (transform) {
             return {
                 errors: this.#errors.map(transform),
@@ -164,7 +164,14 @@ export class ErrorKeeper<L extends string> {
         });
     }
 
-    makeErrorSet(): ErrorSet<ValidationError> {
+    makeErrorSet(): ErrorSet<ValidationError>;
+    makeErrorSet<T>(transform: (error: ValidationError) => T): { errors: T[] };
+    makeErrorSet<T = ValidationError>(
+        transform?: (error: ValidationError, i: number, errors: ValidationError[]) => T,
+    ): { errors: (T | ValidationError)[] } {
+        if (transform) {
+            return new ErrorSet(this.makeStringErrors().map(transform));
+        }
         return new ErrorSet(this.makeStringErrors());
     }
 
