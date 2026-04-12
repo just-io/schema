@@ -3,13 +3,13 @@ import { Pointer } from './pointer';
 
 export type ValidationError = {
     pointer: string[];
-    details: string;
+    detail: string;
     group?: number;
 };
 
 type RawValidationError = {
     pointer: Pointer;
-    details: string;
+    detail: string;
     group?: number;
 };
 
@@ -37,7 +37,14 @@ export class ErrorSet<E> extends Error {
         return this.#errors;
     }
 
-    toJSON() {
+    toJSON(): {errors: E[]};
+    toJSON<T>(transform: (error: E) => T): {errors: T[]};
+    toJSON<T = E>(transform?: (error: E, i: number, errors: E[]) => T): {errors: (T | E)[]} {
+        if (transform) {
+            return {
+                errors: this.#errors.map(transform),
+            };
+        }
         return {
             errors: this.#errors,
         };
@@ -81,16 +88,16 @@ export class ErrorKeeper<L extends string> {
         return this.#lang;
     }
 
-    push(pointer: Pointer, details: string, group?: number): void;
-    push(details: string, group?: number): void;
+    push(pointer: Pointer, detail: string, group?: number): void;
+    push(detail: string, group?: number): void;
     push(arg1: Pointer | string, arg2?: string | number, arg3?: number): void {
         const pointer = arg1 instanceof Pointer ? arg1 : this.pointer;
-        const details = !(arg1 instanceof Pointer) ? arg1 : (arg2 as string);
+        const detail = !(arg1 instanceof Pointer) ? arg1 : (arg2 as string);
         const group = (!(arg1 instanceof Pointer) ? (arg2 as number) : arg3) ?? this.#group;
         if (group !== undefined) {
-            this.#errors.push({ pointer, details, group });
+            this.#errors.push({ pointer, detail, group });
         } else {
-            this.#errors.push({ pointer, details });
+            this.#errors.push({ pointer, detail });
         }
     }
 
@@ -135,20 +142,20 @@ export class ErrorKeeper<L extends string> {
     getStringErrorsByPointer(pointer: Pointer): string[] {
         return this.#errors
             .filter((error) => error.pointer.equal(pointer))
-            .map((error) => error.details);
+            .map((error) => error.detail);
     }
 
     getStringErrorsByPointerPrefix(pointerPrefix: Pointer): string[] {
         return this.#errors
             .filter((error) => error.pointer.startWith(pointerPrefix))
-            .map((error) => error.details);
+            .map((error) => error.detail);
     }
 
     makeStringErrors(): ValidationError[] {
         return this.#errors.map((error) => {
             const validationError: ValidationError = {
                 pointer: error.pointer.raw(),
-                details: error.details,
+                detail: error.detail,
             };
             if (error.group !== undefined) {
                 validationError.group = error.group;
@@ -187,22 +194,22 @@ export class ErrorKeeperWithParent<L extends string> extends ErrorKeeper<L> {
         return this.#mode;
     }
 
-    push(pointer: Pointer, details: string, group?: number): void;
-    push(details: string, group?: number): void;
+    push(pointer: Pointer, detail: string, group?: number): void;
+    push(detail: string, group?: number): void;
     push(arg1: Pointer | string, arg2?: string | number, arg3?: number): void {
         const pointer = arg1 instanceof Pointer ? arg1 : this.pointer;
-        const details = !(arg1 instanceof Pointer) ? arg1 : (arg2 as string);
+        const detail = !(arg1 instanceof Pointer) ? arg1 : (arg2 as string);
         const group = (!(arg1 instanceof Pointer) ? (arg2 as number) : arg3) ?? this.group;
         if (this.#mode === 'instant') {
-            this.#parent.push(pointer, details, group);
+            this.#parent.push(pointer, detail, group);
         } else {
-            super.push(pointer, details, group);
+            super.push(pointer, detail, group);
         }
     }
 
     flush(): this {
         this.forEach((error) => {
-            this.#parent.push(error.pointer, error.details, error.group);
+            this.#parent.push(error.pointer, error.detail, error.group);
         });
         this.clear();
         return this;
@@ -210,8 +217,8 @@ export class ErrorKeeperWithParent<L extends string> extends ErrorKeeper<L> {
 }
 
 export class DummyErrorKeeper<L extends string> extends ErrorKeeper<L> {
-    push(pointer: Pointer, details: string, group?: number): void;
-    push(details: string, group?: number): void;
+    push(pointer: Pointer, detail: string, group?: number): void;
+    push(detail: string, group?: number): void;
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     push(arg1: Pointer | string, arg2?: string | number, arg3?: number): void {}
 }

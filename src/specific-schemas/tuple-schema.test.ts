@@ -30,8 +30,8 @@ describe('TupleSchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['0'], details: 'Should be "number" type.' },
-                { pointer: ['1'], details: 'Should be "string" type.' },
+                { pointer: ['0'], detail: 'Should be "number" type.' },
+                { pointer: ['1'], detail: 'Should be "string" type.' },
             ]);
         });
     });
@@ -58,7 +58,7 @@ describe('TupleSchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['0'], details: 'Should be "number" type.' },
+                { pointer: ['0'], detail: 'Should be "number" type.' },
             ]);
         });
     });

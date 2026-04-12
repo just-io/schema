@@ -22,7 +22,7 @@ describe('OptionalSchema', () => {
                 !new OptionalSchema(new NumberSchema()).validate('1234', errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "number" type.' },
+                { pointer: [], detail: 'Should be "number" type.' },
             ]);
         });
     });
@@ -40,7 +40,7 @@ describe('OptionalSchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new OptionalSchema(new NumberSchema()).cast({}, errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "number" type.' },
+                { pointer: [], detail: 'Should be "number" type.' },
             ]);
         });
     });

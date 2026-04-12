@@ -40,7 +40,7 @@ describe('ExtendedSchema', () => {
                 ).validate({}, errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should ne not empty.' },
+                { pointer: [], detail: 'Should ne not empty.' },
             ]);
         });
     });
@@ -67,7 +67,7 @@ describe('ExtendedSchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should ne not empty.' },
+                { pointer: [], detail: 'Should ne not empty.' },
             ]);
         });
     });

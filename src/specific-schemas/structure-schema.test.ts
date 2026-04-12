@@ -40,7 +40,7 @@ describe('StructureSchema', () => {
                 }).validate(null, errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "object" type.' },
+                { pointer: [], detail: 'Should be "object" type.' },
             ]);
         });
 
@@ -53,9 +53,9 @@ describe('StructureSchema', () => {
                 }).validate({ prefix: 'name', count: '12' }, errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['name'], details: 'Should be existed.' },
-                { pointer: ['count'], details: 'Should be "number" type.' },
-                { pointer: ['prefix'], details: 'Should not be existed.' },
+                { pointer: ['name'], detail: 'Should be existed.' },
+                { pointer: ['count'], detail: 'Should be "number" type.' },
+                { pointer: ['prefix'], detail: 'Should not be existed.' },
             ]);
         });
 
@@ -71,7 +71,7 @@ describe('StructureSchema', () => {
                     .ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['total'], details: 'Should be "number" type.' },
+                { pointer: ['total'], detail: 'Should be "number" type.' },
             ]);
         });
     });
@@ -110,7 +110,7 @@ describe('StructureSchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "object" type.' },
+                { pointer: [], detail: 'Should be "object" type.' },
             ]);
         });
 
@@ -124,9 +124,9 @@ describe('StructureSchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['name'], details: 'Should be existed.' },
-                { pointer: ['count'], details: 'Should be "number" type.' },
-                { pointer: ['prefix'], details: 'Should not be existed.' },
+                { pointer: ['name'], detail: 'Should be existed.' },
+                { pointer: ['count'], detail: 'Should be "number" type.' },
+                { pointer: ['prefix'], detail: 'Should not be existed.' },
             ]);
         });
 
@@ -141,7 +141,7 @@ describe('StructureSchema', () => {
                     .cast({ name: 'name', count: '12', total: '27 pages' }, errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['total'], details: 'Should be "number" type.' },
+                { pointer: ['total'], detail: 'Should be "number" type.' },
             ]);
         });
     });

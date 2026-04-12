@@ -313,7 +313,7 @@ const result = schema.validate(data, errorKeeper, false);
 
 if (!result.ok) {
     console.log(errorKeeper.makeStringErrors());
-    // [{ pointer: ['field'], details: 'Should be "string" type.' }]
+    // [{ pointer: ['field'], detail: 'Should be "string" type.' }]
 }
 ```
 
@@ -411,9 +411,9 @@ schema.validate(invalidData, errorKeeper, false);
 
 const errors = errorKeeper.makeStringErrors();
 // [
-//     { pointer: ['name'], details: 'Should be existed.' },
-//     { pointer: ['age'], details: 'Should be "number" type.' },
-//     { pointer: ['unknownField'], details: 'Should not be existed.' }
+//     { pointer: ['name'], detail: 'Should be existed.' },
+//     { pointer: ['age'], detail: 'Should be "number" type.' },
+//     { pointer: ['unknownField'], detail: 'Should not be existed.' }
 // ]
 ```
 

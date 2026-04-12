@@ -29,7 +29,7 @@ describe('RecordSchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['age'], details: 'Should be "string" type.' },
+                { pointer: ['age'], detail: 'Should be "string" type.' },
             ]);
         });
     });
@@ -56,7 +56,7 @@ describe('RecordSchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['age'], details: 'Should be "string" type.' },
+                { pointer: ['age'], detail: 'Should be "string" type.' },
             ]);
         });
     });

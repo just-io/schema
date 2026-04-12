@@ -78,21 +78,21 @@ describe('LaySchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['nodes', '2'], group: 0, details: 'Should be "string" type.' },
+                { pointer: ['nodes', '2'], group: 0, detail: 'Should be "string" type.' },
                 {
                     pointer: ['nodes', '2', 'nodes', '0'],
                     group: 0,
-                    details: 'Should be "string" type.',
+                    detail: 'Should be "string" type.',
                 },
                 {
                     pointer: ['nodes', '2', 'nodes', '0', 'nodes', '0'],
                     group: 0,
-                    details: 'Should be "string" type.',
+                    detail: 'Should be "string" type.',
                 },
                 {
                     pointer: ['nodes', '2', 'nodes', '0', 'nodes', '0'],
                     group: 1,
-                    details: 'Should be "object" type.',
+                    detail: 'Should be "object" type.',
                 },
             ]);
         });
@@ -152,21 +152,21 @@ describe('LaySchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['nodes', '2'], group: 0, details: 'Should be "string" type.' },
+                { pointer: ['nodes', '2'], group: 0, detail: 'Should be "string" type.' },
                 {
                     pointer: ['nodes', '2', 'nodes', '0'],
                     group: 0,
-                    details: 'Should be "string" type.',
+                    detail: 'Should be "string" type.',
                 },
                 {
                     pointer: ['nodes', '2', 'nodes', '0', 'nodes', '0'],
                     group: 0,
-                    details: 'Should be "string" type.',
+                    detail: 'Should be "string" type.',
                 },
                 {
                     pointer: ['nodes', '2', 'nodes', '0', 'nodes', '0', 'nodes'],
                     group: 1,
-                    details: 'Should be existed.',
+                    detail: 'Should be existed.',
                 },
             ]);
         });

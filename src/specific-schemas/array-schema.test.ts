@@ -19,7 +19,7 @@ describe('ArraySchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new ArraySchema(new NumberSchema()).validate(null, errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "array" type.' },
+                { pointer: [], detail: 'Should be "array" type.' },
             ]);
         });
 
@@ -29,7 +29,7 @@ describe('ArraySchema', () => {
                 !new ArraySchema(new NumberSchema()).validate([1, 'name'], errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['1'], details: 'Should be "number" type.' },
+                { pointer: ['1'], detail: 'Should be "number" type.' },
             ]);
         });
 
@@ -51,7 +51,7 @@ describe('ArraySchema', () => {
                         .validate([1, 2, 3, 4], errorKeeper, false).ok,
                 );
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain less than or equal 3 items.' },
+                    { pointer: [], detail: 'Should contain less than or equal 3 items.' },
                 ]);
             });
         });
@@ -74,7 +74,7 @@ describe('ArraySchema', () => {
                         .validate([1, 2], errorKeeper, false).ok,
                 );
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain more than or equal 3 items.' },
+                    { pointer: [], detail: 'Should contain more than or equal 3 items.' },
                 ]);
             });
         });
@@ -97,7 +97,7 @@ describe('ArraySchema', () => {
                         .validate([1, 2, 3, 1], errorKeeper, false).ok,
                 );
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'All items should be unique.' },
+                    { pointer: [], detail: 'All items should be unique.' },
                 ]);
             });
         });
@@ -115,7 +115,7 @@ describe('ArraySchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new ArraySchema(new NumberSchema()).cast(undefined, errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "array" type.' },
+                { pointer: [], detail: 'Should be "array" type.' },
             ]);
         });
 
@@ -125,7 +125,7 @@ describe('ArraySchema', () => {
                 !new ArraySchema(new NumberSchema()).cast(['1', 'name'], errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['1'], details: 'Should be "number" type.' },
+                { pointer: ['1'], detail: 'Should be "number" type.' },
             ]);
         });
 
@@ -147,7 +147,7 @@ describe('ArraySchema', () => {
                         .cast(['1', '2', '3', '4'], errorKeeper, false).ok,
                 );
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain less than or equal 3 items.' },
+                    { pointer: [], detail: 'Should contain less than or equal 3 items.' },
                 ]);
             });
         });
@@ -170,7 +170,7 @@ describe('ArraySchema', () => {
                         .cast(['1', '2'], errorKeeper, false).ok,
                 );
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain more than or equal 3 items.' },
+                    { pointer: [], detail: 'Should contain more than or equal 3 items.' },
                 ]);
             });
         });
@@ -193,7 +193,7 @@ describe('ArraySchema', () => {
                         .cast(['1', '2', '3', '1'], errorKeeper, false).ok,
                 );
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'All items should be unique.' },
+                    { pointer: [], detail: 'All items should be unique.' },
                 ]);
             });
         });

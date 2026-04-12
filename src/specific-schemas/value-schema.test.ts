@@ -17,7 +17,7 @@ describe('ValueSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new ValueSchema('str').validate(12, errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should be equal "str".' },
+                    { pointer: [], detail: 'Should be equal "str".' },
                 ]);
             });
         });
@@ -32,7 +32,7 @@ describe('ValueSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new ValueSchema(12).validate('str', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should be equal "12".' },
+                    { pointer: [], detail: 'Should be equal "12".' },
                 ]);
             });
         });
@@ -47,7 +47,7 @@ describe('ValueSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new ValueSchema(true).validate('str', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should be equal "true".' },
+                    { pointer: [], detail: 'Should be equal "true".' },
                 ]);
             });
         });
@@ -62,7 +62,7 @@ describe('ValueSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new ValueSchema(null).validate('str', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should be equal "null".' },
+                    { pointer: [], detail: 'Should be equal "null".' },
                 ]);
             });
         });
@@ -79,7 +79,7 @@ describe('ValueSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new ValueSchema('str').cast('12', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should be equal "str".' },
+                    { pointer: [], detail: 'Should be equal "str".' },
                 ]);
             });
         });
@@ -94,7 +94,7 @@ describe('ValueSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new ValueSchema(12).cast('str', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should be equal "12".' },
+                    { pointer: [], detail: 'Should be equal "12".' },
                 ]);
             });
         });
@@ -110,7 +110,7 @@ describe('ValueSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new ValueSchema(true).cast('', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain more than or equal 1 symbols.' },
+                    { pointer: [], detail: 'Should contain more than or equal 1 symbols.' },
                 ]);
             });
         });
@@ -125,7 +125,7 @@ describe('ValueSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new ValueSchema(null).cast('null', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain less than or equal 0 symbols.' },
+                    { pointer: [], detail: 'Should contain less than or equal 0 symbols.' },
                 ]);
             });
         });

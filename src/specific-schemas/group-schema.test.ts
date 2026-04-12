@@ -39,7 +39,7 @@ describe('GroupSchema', () => {
                 !groupSchema.validate({ op: 'delete', path: 'example.com' }, errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['op'], details: 'Should be one of "get", "add".' },
+                { pointer: ['op'], detail: 'Should be one of "get", "add".' },
             ]);
         });
     });
@@ -57,7 +57,7 @@ describe('GroupSchema', () => {
                 !groupSchema.cast({ op: 'delete', path: 'example.com' }, errorKeeper, false).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['op'], details: 'Should be one of "get", "add".' },
+                { pointer: ['op'], detail: 'Should be one of "get", "add".' },
             ]);
         });
     });

@@ -16,7 +16,7 @@ describe('BooleanSchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new BooleanSchema().validate('1234', errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "boolean" type.' },
+                { pointer: [], detail: 'Should be "boolean" type.' },
             ]);
         });
     });
@@ -32,7 +32,7 @@ describe('BooleanSchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new BooleanSchema().cast({}, errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "string" type.' },
+                { pointer: [], detail: 'Should be "string" type.' },
             ]);
         });
     });

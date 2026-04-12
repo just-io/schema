@@ -55,7 +55,7 @@ describe('Common schema methods', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!schemas.value('str').is(12, errorKeeper));
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should be equal "str".' },
+                    { pointer: [], detail: 'Should be equal "str".' },
                 ]);
             });
         });
@@ -80,7 +80,7 @@ describe('Common schema methods', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.throws(() => schemas.value('str').assert(12, errorKeeper));
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should be equal "str".' },
+                    { pointer: [], detail: 'Should be equal "str".' },
                 ]);
             });
         });
@@ -105,7 +105,7 @@ describe('Common schema methods', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!schemas.value('str').check(12, errorKeeper).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should be equal "str".' },
+                    { pointer: [], detail: 'Should be equal "str".' },
                 ]);
             });
         });
@@ -376,10 +376,10 @@ describe('Common schema methods', () => {
                 );
                 assert.ok(!result.ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: ['name'], details: 'Should be existed.' },
-                    { pointer: ['chapters', '0'], details: 'Should be "object" type.' },
-                    { pointer: ['available'], details: 'Should be existed.' },
-                    { pointer: ['title'], details: 'Should not be existed.' },
+                    { pointer: ['name'], detail: 'Should be existed.' },
+                    { pointer: ['chapters', '0'], detail: 'Should be "object" type.' },
+                    { pointer: ['available'], detail: 'Should be existed.' },
+                    { pointer: ['title'], detail: 'Should not be existed.' },
                 ]);
             });
         });
@@ -438,10 +438,10 @@ describe('Common schema methods', () => {
                 const result = schema.compose(urlSearchParams, errorKeeper, false, '/', 0);
                 assert.ok(!result.ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: ['name'], details: 'Should be existed.' },
-                    { pointer: ['chapters', '0'], details: 'Should be "object" type.' },
-                    { pointer: ['available'], details: 'Should be existed.' },
-                    { pointer: ['title'], details: 'Should not be existed.' },
+                    { pointer: ['name'], detail: 'Should be existed.' },
+                    { pointer: ['chapters', '0'], detail: 'Should be "object" type.' },
+                    { pointer: ['available'], detail: 'Should be existed.' },
+                    { pointer: ['title'], detail: 'Should not be existed.' },
                 ]);
             });
         });
@@ -498,10 +498,10 @@ describe('Common schema methods', () => {
                 const result = schema.compose(formData, errorKeeper, false, '/', 0);
                 assert.ok(!result.ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: ['name'], details: 'Should be existed.' },
-                    { pointer: ['chapters', '0'], details: 'Should be "object" type.' },
-                    { pointer: ['available'], details: 'Should be existed.' },
-                    { pointer: ['title'], details: 'Should not be existed.' },
+                    { pointer: ['name'], detail: 'Should be existed.' },
+                    { pointer: ['chapters', '0'], detail: 'Should be "object" type.' },
+                    { pointer: ['available'], detail: 'Should be existed.' },
+                    { pointer: ['title'], detail: 'Should not be existed.' },
                 ]);
             });
         });
@@ -553,11 +553,11 @@ describe('Complex schema using', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: ['data', 'id'], details: 'Should be existed.' },
-                { pointer: ['data', 'type'], details: 'Should be existed.' },
-                { pointer: ['data', 'attributes', '0'], details: 'Should be "object" type.' },
-                { pointer: ['data', 'attributes', '2'], details: 'Should be "object" type.' },
-                { pointer: ['data', 'test'], details: 'Should not be existed.' },
+                { pointer: ['data', 'id'], detail: 'Should be existed.' },
+                { pointer: ['data', 'type'], detail: 'Should be existed.' },
+                { pointer: ['data', 'attributes', '0'], detail: 'Should be "object" type.' },
+                { pointer: ['data', 'attributes', '2'], detail: 'Should be "object" type.' },
+                { pointer: ['data', 'test'], detail: 'Should not be existed.' },
             ]);
         });
     });

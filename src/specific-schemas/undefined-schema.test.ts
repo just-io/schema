@@ -16,7 +16,7 @@ describe('UndefinedSchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new UndefinedSchema().validate('1234', errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "undefined" type.' },
+                { pointer: [], detail: 'Should be "undefined" type.' },
             ]);
         });
     });
@@ -31,7 +31,7 @@ describe('UndefinedSchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new UndefinedSchema().cast({}, errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "string" type.' },
+                { pointer: [], detail: 'Should be "string" type.' },
             ]);
         });
     });

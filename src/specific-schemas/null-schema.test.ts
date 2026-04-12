@@ -16,7 +16,7 @@ describe('NullSchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new NullSchema().validate('1234', errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "null" type.' },
+                { pointer: [], detail: 'Should be "null" type.' },
             ]);
         });
     });
@@ -31,7 +31,7 @@ describe('NullSchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new NullSchema().cast({}, errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "string" type.' },
+                { pointer: [], detail: 'Should be "string" type.' },
             ]);
         });
     });

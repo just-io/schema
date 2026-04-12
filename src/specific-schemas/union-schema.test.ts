@@ -37,8 +37,8 @@ describe('UnionSchema', () => {
                 ).ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], group: 0, details: 'Should be "number" type.' },
-                { pointer: [], group: 1, details: 'Should be "null" type.' },
+                { pointer: [], group: 0, detail: 'Should be "number" type.' },
+                { pointer: [], group: 1, detail: 'Should be "null" type.' },
             ]);
         });
     });
@@ -66,8 +66,8 @@ describe('UnionSchema', () => {
                     .ok,
             );
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], group: 0, details: 'Should be "number" type.' },
-                { pointer: [], group: 1, details: 'Should be "string" type.' },
+                { pointer: [], group: 0, detail: 'Should be "number" type.' },
+                { pointer: [], group: 1, detail: 'Should be "string" type.' },
             ]);
         });
     });

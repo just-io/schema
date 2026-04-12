@@ -16,7 +16,7 @@ describe('StringSchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new StringSchema().validate(12, errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "string" type.' },
+                { pointer: [], detail: 'Should be "string" type.' },
             ]);
         });
 
@@ -34,7 +34,7 @@ describe('StringSchema', () => {
                     !new StringSchema().regexp(/string/).validate('strung', errorKeeper, false).ok,
                 );
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should match regexp "string".' },
+                    { pointer: [], detail: 'Should match regexp "string".' },
                 ]);
             });
         });
@@ -59,7 +59,7 @@ describe('StringSchema', () => {
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                     {
                         pointer: [],
-                        details: 'Should be included in enum of values: "string", "str".',
+                        detail: 'Should be included in enum of values: "string", "str".',
                     },
                 ]);
             });
@@ -75,7 +75,7 @@ describe('StringSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new StringSchema().maxLength(2).validate('str', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain less than or equal 2 symbols.' },
+                    { pointer: [], detail: 'Should contain less than or equal 2 symbols.' },
                 ]);
             });
         });
@@ -90,7 +90,7 @@ describe('StringSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new StringSchema().minLength(2).validate('s', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain more than or equal 2 symbols.' },
+                    { pointer: [], detail: 'Should contain more than or equal 2 symbols.' },
                 ]);
             });
         });
@@ -106,7 +106,7 @@ describe('StringSchema', () => {
             const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
             assert.ok(!new StringSchema().cast({}, errorKeeper, false).ok);
             assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                { pointer: [], details: 'Should be "string" type.' },
+                { pointer: [], detail: 'Should be "string" type.' },
             ]);
         });
 
@@ -124,7 +124,7 @@ describe('StringSchema', () => {
                     !new StringSchema().regexp(/string/).cast('strung', errorKeeper, false).ok,
                 );
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should match regexp "string".' },
+                    { pointer: [], detail: 'Should match regexp "string".' },
                 ]);
             });
         });
@@ -147,7 +147,7 @@ describe('StringSchema', () => {
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
                     {
                         pointer: [],
-                        details: 'Should be included in enum of values: "string", "str".',
+                        detail: 'Should be included in enum of values: "string", "str".',
                     },
                 ]);
             });
@@ -163,7 +163,7 @@ describe('StringSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new StringSchema().maxLength(2).cast('str', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain less than or equal 2 symbols.' },
+                    { pointer: [], detail: 'Should contain less than or equal 2 symbols.' },
                 ]);
             });
         });
@@ -178,7 +178,7 @@ describe('StringSchema', () => {
                 const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
                 assert.ok(!new StringSchema().minLength(2).cast('s', errorKeeper, false).ok);
                 assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
-                    { pointer: [], details: 'Should contain more than or equal 2 symbols.' },
+                    { pointer: [], detail: 'Should contain more than or equal 2 symbols.' },
                 ]);
             });
         });
