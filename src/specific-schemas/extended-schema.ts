@@ -1,12 +1,15 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Result, Schema, StringStructure, withDefault } from '../schema';
+import { Defs, Schema, StringStructure, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export type SpecifyingValidator<T, L extends string> = (
     value: T,
     lang: L,
-    errorKeeper: ErrorKeeper<L>,
+    errorKeeper: ErrorKeeper,
 ) => boolean;
 
 export default class ExtendedSchema<T, L extends string> extends Schema<T, L> {
@@ -21,19 +24,26 @@ export default class ExtendedSchema<T, L extends string> extends Schema<T, L> {
     }
 
     @withDefault
-    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
-        const result = this.#schema.validate(value, errorKeeper, useDefault);
+    validate(
+        value: unknown,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
+        useDefault: boolean,
+    ): Result<T, ErrorSet<ValidationError>> {
+        const result = this.#schema.validate(value, errorKeeper, formatter, useDefault);
         if (!result.ok) {
-            return { ok: false, error: true };
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         let isCorrectedValue = true;
         for (const validator of this.#specifyingValidators) {
-            if (!validator(result.value, errorKeeper.lang as L, errorKeeper as ErrorKeeper<L>)) {
+            if (!validator(result.value, errorKeeper.lang as L, errorKeeper as ErrorKeeper)) {
                 isCorrectedValue = false;
             }
         }
 
-        return isCorrectedValue ? { ok: true, value: result.value } : { ok: false, error: true };
+        return isCorrectedValue
+            ? { ok: true, value: result.value }
+            : { ok: false, error: errorKeeper.makeErrorSet() };
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -43,20 +53,23 @@ export default class ExtendedSchema<T, L extends string> extends Schema<T, L> {
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T, unknown> {
-        const result = this.#schema.cast(value, errorKeeper, useDefault);
+    ): Result<T, ErrorSet<ValidationError>> {
+        const result = this.#schema.cast(value, errorKeeper, formatter, useDefault);
         if (!result.ok) {
-            return { ok: false, error: true };
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         let isCorrectedValue = true;
         for (const validator of this.#specifyingValidators) {
-            if (!validator(result.value, errorKeeper.lang as L, errorKeeper as ErrorKeeper<L>)) {
+            if (!validator(result.value, errorKeeper.lang as L, errorKeeper as ErrorKeeper)) {
                 isCorrectedValue = false;
             }
         }
 
-        return isCorrectedValue ? { ok: true, value: result.value } : { ok: false, error: true };
+        return isCorrectedValue
+            ? { ok: true, value: result.value }
+            : { ok: false, error: errorKeeper.makeErrorSet() };
     }
 }

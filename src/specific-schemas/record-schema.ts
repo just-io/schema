@@ -1,15 +1,10 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import {
-    TypeSchema,
-    Schema,
-    Defs,
-    Result,
-    StringStructure,
-    withDefault,
-    ResultValue,
-} from '../schema';
+import { TypeSchema, Schema, Defs, StringStructure, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export default class RecordSchema<T, L extends string> extends TypeSchema<Record<string, T>, L> {
     #valueSchema: Schema<T, L>;
@@ -22,32 +17,32 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<Record<string, T>, unknown> {
+    ): Result<Record<string, T>, ErrorSet<ValidationError>> {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push(errorKeeper.formatter.object.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.object.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
+        const castedEntries: [string, T][] = [];
         const entries = Object.entries(value);
-        const castedEntries = entries
-            .map(
-                (entry) =>
-                    [
-                        entry[0],
-                        this.#valueSchema.validate(
-                            entry[1],
-                            errorKeeper.child(entry[0]),
-                            useDefault,
-                        ),
-                    ] as const,
-            )
-            .filter((entry): entry is [string, ResultValue<T>] => entry[1].ok)
-            .map((entry) => [entry[0], entry[1].value] as const);
-        if (castedEntries.length !== entries.length) {
-            return { ok: false, error: true };
+        for (const entry of entries) {
+            const result = this.#valueSchema.validate(
+                entry[1],
+                errorKeeper.child(entry[0]),
+                formatter,
+                useDefault,
+            );
+            if (result.ok) {
+                castedEntries.push([entry[0], result.value]);
+            } else {
+                errorKeeper.append(result.error);
+            }
         }
-
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
+        }
         return {
             ok: true,
             value: Object.fromEntries(castedEntries),
@@ -71,33 +66,37 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<Record<string, T>, unknown> {
+    ): Result<Record<string, T>, ErrorSet<ValidationError>> {
         if (
             typeof value === 'string' ||
             value === undefined ||
             Array.isArray(value) ||
             value instanceof File
         ) {
-            errorKeeper.push(errorKeeper.formatter.object.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.object.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
+        const castedEntries: [string, T][] = [];
         const entries = Object.entries(value);
-        const castedEntries = entries
-            .map(
-                (entry) =>
-                    [
-                        entry[0],
-                        this.#valueSchema.cast(entry[1], errorKeeper.child(entry[0]), useDefault),
-                    ] as const,
-            )
-            .filter((entry): entry is [string, ResultValue<T>] => entry[1].ok)
-            .map((entry) => [entry[0], entry[1].value] as const);
-        if (castedEntries.length !== entries.length) {
-            return { ok: false, error: true };
+        for (const entry of entries) {
+            const result = this.#valueSchema.cast(
+                entry[1],
+                errorKeeper.child(entry[0]),
+                formatter,
+                useDefault,
+            );
+            if (result.ok) {
+                castedEntries.push([entry[0], result.value]);
+            } else {
+                errorKeeper.append(result.error);
+            }
         }
-
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
+        }
         return {
             ok: true,
             value: Object.fromEntries(castedEntries),

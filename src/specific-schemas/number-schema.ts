@@ -1,7 +1,10 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Defs, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export default class NumberSchema<T extends number, L extends string> extends TypeSchema<T, L> {
     #enum?: T[];
@@ -12,22 +15,22 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
 
     #maximum?: number;
 
-    #validate(value: number, errorKeeper: ErrorKeeper<L>): boolean {
+    #validate(value: number, errorKeeper: ErrorKeeper, formatter: ErrorFormatter): boolean {
         if (this.#enum && !this.#enum.includes(value as T)) {
-            errorKeeper.push(errorKeeper.formatter.number.enum(this.#enum));
+            errorKeeper.push({ detail: formatter.number.enum(this.#enum) });
             return false;
         }
         if (this.#minimum !== undefined && value < this.#minimum) {
-            errorKeeper.push(errorKeeper.formatter.number.minimum(this.#minimum));
+            errorKeeper.push({ detail: formatter.number.minimum(this.#minimum) });
             return false;
         }
         if (this.#maximum !== undefined && value > this.#maximum) {
-            errorKeeper.push(errorKeeper.formatter.number.maximum(this.#maximum));
+            errorKeeper.push({ detail: formatter.number.maximum(this.#maximum) });
             return false;
         }
         if (this.#integer) {
             if (value % 1 !== 0) {
-                errorKeeper.push(errorKeeper.formatter.number.integer());
+                errorKeeper.push({ detail: formatter.number.integer() });
                 return false;
             }
         }
@@ -45,17 +48,18 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<T, unknown> {
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'number') {
-            errorKeeper.push(errorKeeper.formatter.number.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.number.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
-        if (!this.#validate(value, errorKeeper)) {
-            return { ok: false, error: true };
+        if (!this.#validate(value, errorKeeper, formatter)) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value: value as T };
@@ -76,22 +80,23 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<T, unknown> {
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'string' || value === '') {
-            errorKeeper.push(errorKeeper.formatter.number.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.number.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         const castedValue = Number(value);
         if (Number.isNaN(castedValue)) {
-            errorKeeper.push(errorKeeper.formatter.number.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.number.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
-        if (!this.#validate(castedValue, errorKeeper)) {
-            return { ok: false, error: true };
+        if (!this.#validate(castedValue, errorKeeper, formatter)) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value: castedValue as T };

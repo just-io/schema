@@ -1,16 +1,11 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import {
-    TypeSchema,
-    Schema,
-    Defs,
-    StringStructure,
-    Result,
-    withDefault,
-    ResultValue,
-} from '../schema';
+import { TypeSchema, Schema, Defs, StringStructure, withDefault } from '../schema';
 import OptionalSchema from './optional-schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export type FieldSchemas<T, L extends string> = {
     [K in keyof T]-?: Schema<T[K], L>;
@@ -27,66 +22,64 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
     }
 
     @withDefault
-    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
+    validate(
+        value: unknown,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
+        useDefault: boolean,
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push(errorKeeper.formatter.object.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.object.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
+        const castedEntries: [string, T[keyof T]][] = [];
         const keys = Object.keys(this.#fieldSchemas);
-        const castedEntries = keys
-            .map((key) => {
-                const innerErrorKeeper = errorKeeper.fork(key);
-                const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].validate(
-                    (value as Record<string, unknown>)[key],
-                    innerErrorKeeper,
-                    useDefault,
-                );
-
-                if (!result.ok) {
-                    if (!(key in value)) {
-                        errorKeeper.push(
-                            errorKeeper.pointer.concat(key),
-                            errorKeeper.formatter.object.existField(),
-                        );
-                        return [key, { ok: false, error: true }] as const;
-                    } else {
-                        innerErrorKeeper.flush();
-                    }
-                }
-                return [key, result] as const;
-            })
-            .filter((entry): entry is [string, ResultValue<T[keyof T]>] => entry[1].ok)
-            .map((entry) => [entry[0], entry[1].value] as const);
-
-        let isCorrectedValues = true;
-        for (const key of Object.keys(value)) {
-            if (!(key in this.#fieldSchemas)) {
-                if (this.#additionalProps) {
-                    const innerErrorKeeper = errorKeeper.fork(key);
-                    const result = this.#additionalProps.validate(
-                        (value as Record<string, unknown>)[key],
-                        innerErrorKeeper,
-                        useDefault,
-                    );
-                    if (!result.ok) {
-                        innerErrorKeeper.flush();
-                        isCorrectedValues = false;
-                    }
+        for (const key of keys) {
+            const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].validate(
+                (value as Record<string, ErrorSet<ValidationError>>)[key],
+                errorKeeper.child(key),
+                formatter,
+                useDefault,
+            );
+            if (result.ok) {
+                castedEntries.push([key, result.value]);
+            } else {
+                if (!(key in value)) {
+                    errorKeeper.push({
+                        pointer: errorKeeper.pointer.concat(key),
+                        detail: formatter.object.existField(),
+                    });
                 } else {
-                    errorKeeper.push(
-                        errorKeeper.pointer.concat(key),
-                        errorKeeper.formatter.object.notexistField(),
-                    );
-                    isCorrectedValues = false;
+                    errorKeeper.append(result.error);
                 }
             }
         }
-
-        if (castedEntries.length !== keys.length || !isCorrectedValues) {
-            return { ok: false, error: true };
+        for (const key of Object.keys(value)) {
+            if (!(key in this.#fieldSchemas)) {
+                if (this.#additionalProps) {
+                    const result = this.#additionalProps.validate(
+                        (value as Record<string, ErrorSet<ValidationError>>)[key],
+                        errorKeeper.child(key),
+                        formatter,
+                        useDefault,
+                    );
+                    if (result.ok) {
+                        castedEntries.push([key, result.value as T[keyof T]]);
+                    } else {
+                        errorKeeper.append(result.error);
+                    }
+                } else {
+                    errorKeeper.push({
+                        pointer: errorKeeper.pointer.concat(key),
+                        detail: formatter.object.notexistField(),
+                    });
+                }
+            }
         }
-
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
+        }
         return {
             ok: true,
             value: Object.fromEntries(castedEntries) as T,
@@ -125,66 +118,62 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T, unknown> {
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'object' || Array.isArray(value) || value instanceof File) {
-            errorKeeper.push(errorKeeper.formatter.object.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.object.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
+        const castedEntries: [string, T[keyof T]][] = [];
         const keys = Object.keys(this.#fieldSchemas);
-        const castedEntries = keys
-            .map((key) => {
-                const innerErrorKeeper = errorKeeper.fork(key);
-                const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].cast(
-                    value[key],
-                    innerErrorKeeper,
-                    useDefault,
-                );
-
+        for (const key of keys) {
+            const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].cast(
+                value[key],
+                errorKeeper.child(key),
+                formatter,
+                useDefault,
+            );
+            if (result.ok) {
+                castedEntries.push([key, result.value]);
+            } else {
                 if (!(key in value)) {
-                    errorKeeper.push(
-                        errorKeeper.pointer.concat(key),
-                        errorKeeper.formatter.object.existField(),
-                    );
-                    return [key, { ok: false, error: true }] as const;
+                    errorKeeper.push({
+                        pointer: errorKeeper.pointer.concat(key),
+                        detail: formatter.object.existField(),
+                    });
                 } else {
-                    innerErrorKeeper.flush();
-                    return [key, result] as const;
-                }
-            })
-            .filter((entry): entry is [string, ResultValue<T[keyof T]>] => entry[1].ok)
-            .map((entry) => [entry[0], entry[1].value] as const);
-
-        let isCorrectedValues = true;
-        for (const key of Object.keys(value)) {
-            if (!(key in this.#fieldSchemas)) {
-                if (this.#additionalProps) {
-                    const innerErrorKeeper = errorKeeper.fork(key);
-                    const result = this.#additionalProps.cast(
-                        value[key],
-                        innerErrorKeeper,
-                        useDefault,
-                    );
-                    if (!result.ok) {
-                        innerErrorKeeper.flush();
-                        isCorrectedValues = false;
-                    }
-                } else {
-                    errorKeeper.push(
-                        errorKeeper.pointer.concat(key),
-                        errorKeeper.formatter.object.notexistField(),
-                    );
-                    isCorrectedValues = false;
+                    errorKeeper.append(result.error);
                 }
             }
         }
-
-        if (castedEntries.length !== keys.length || !isCorrectedValues) {
-            return { ok: false, error: true };
+        for (const key of Object.keys(value)) {
+            if (!(key in this.#fieldSchemas)) {
+                if (this.#additionalProps) {
+                    const result = this.#additionalProps.cast(
+                        value[key],
+                        errorKeeper.child(key),
+                        formatter,
+                        useDefault,
+                    );
+                    if (result.ok) {
+                        castedEntries.push([key, result.value as T[keyof T]]);
+                    } else {
+                        errorKeeper.append(result.error);
+                    }
+                } else {
+                    errorKeeper.push({
+                        pointer: errorKeeper.pointer.concat(key),
+                        detail: formatter.object.notexistField(),
+                    });
+                }
+            }
         }
-
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
+        }
         return {
             ok: true,
             value: Object.fromEntries(castedEntries) as T,

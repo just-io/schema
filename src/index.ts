@@ -50,6 +50,8 @@ export function make<L extends string = 'default'>() {
 }
 
 export * from './error-keeper';
+export * from './error-set';
+export * from './result';
 export * from './pointer';
 export * from './error-formatter';
 export * from './schema';

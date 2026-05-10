@@ -1,7 +1,10 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Result, Schema, StringStructure, withDefault } from '../schema';
+import { Defs, Schema, StringStructure, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export default class LazySchema<T, L extends string> extends Schema<T, L> {
     #lazySchema: () => Schema<T, L>;
@@ -12,8 +15,13 @@ export default class LazySchema<T, L extends string> extends Schema<T, L> {
     }
 
     @withDefault
-    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
-        return this.#lazySchema().validate(value, errorKeeper, useDefault);
+    validate(
+        value: unknown,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
+        useDefault: boolean,
+    ): Result<T, ErrorSet<ValidationError>> {
+        return this.#lazySchema().validate(value, errorKeeper, formatter, useDefault);
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -23,9 +31,10 @@ export default class LazySchema<T, L extends string> extends Schema<T, L> {
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T, unknown> {
-        return this.#lazySchema().cast(value, errorKeeper, useDefault);
+    ): Result<T, ErrorSet<ValidationError>> {
+        return this.#lazySchema().cast(value, errorKeeper, formatter, useDefault);
     }
 }

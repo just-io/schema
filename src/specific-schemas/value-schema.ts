@@ -1,7 +1,10 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Defs, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export default class ValueSchema<
     T extends string | number | boolean | null,
@@ -17,13 +20,14 @@ export default class ValueSchema<
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<T, unknown> {
+    ): Result<T, ErrorSet<ValidationError>> {
         if (value !== this.#expectedValue) {
-            errorKeeper.push(errorKeeper.formatter.value(this.#expectedValue));
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.value(this.#expectedValue) });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value: value as T };
@@ -76,51 +80,52 @@ export default class ValueSchema<
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<T, unknown> {
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatter.string.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.string.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         if (typeof this.#expectedValue === 'string') {
             if (value === this.#expectedValue) {
                 return { ok: true, value: this.#expectedValue };
             }
-            errorKeeper.push(errorKeeper.formatter.value(this.#expectedValue));
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.value(this.#expectedValue) });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         if (typeof this.#expectedValue === 'number') {
             if (value !== '' && Number(value) === this.#expectedValue) {
                 return { ok: true, value: this.#expectedValue };
             }
-            errorKeeper.push(errorKeeper.formatter.value(this.#expectedValue));
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.value(this.#expectedValue) });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         if (typeof this.#expectedValue === 'boolean') {
             if (this.#expectedValue) {
                 if (value !== '') {
                     return { ok: true, value: this.#expectedValue };
                 }
-                errorKeeper.push(errorKeeper.formatter.string.minLength(1));
-                return { ok: false, error: true };
+                errorKeeper.push({ detail: formatter.string.minLength(1) });
+                return { ok: false, error: errorKeeper.makeErrorSet() };
             } else {
                 if (value === '') {
                     return { ok: true, value: this.#expectedValue };
                 }
-                errorKeeper.push(errorKeeper.formatter.string.maxLength(0));
-                return { ok: false, error: true };
+                errorKeeper.push({ detail: formatter.string.maxLength(0) });
+                return { ok: false, error: errorKeeper.makeErrorSet() };
             }
         }
         if (this.#expectedValue === null) {
             if (value === '') {
                 return { ok: true, value: this.#expectedValue };
             }
-            errorKeeper.push(errorKeeper.formatter.string.maxLength(0));
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.string.maxLength(0) });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
-        errorKeeper.push(errorKeeper.formatter.string.type());
-        return { ok: false, error: true };
+        errorKeeper.push({ detail: formatter.string.type() });
+        return { ok: false, error: errorKeeper.makeErrorSet() };
     }
 }

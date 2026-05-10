@@ -3,17 +3,18 @@ import { describe, test } from 'node:test';
 
 import { ErrorKeeper, defaultErrorFormatter } from '../index';
 
-import LaySchema from './lazy-schema';
+import LazySchema from './lazy-schema';
 import StringSchema from './string-schema';
 import StructureSchema from './structure-schema';
 import ArraySchema from './array-schema';
 import UnionSchema from './union-schema';
+import { transformToJSON } from '../heplers';
 
 type RecursiveType = {
     nodes: (RecursiveType | string)[];
 };
 
-describe('LaySchema', () => {
+describe('LazySchema', () => {
     const lazySchema: StructureSchema<RecursiveType, 'default'> = new StructureSchema<
         RecursiveType,
         'default'
@@ -21,14 +22,14 @@ describe('LaySchema', () => {
         nodes: new ArraySchema(
             new UnionSchema<RecursiveType | string, 'default'>(
                 new StringSchema(),
-                new LaySchema(() => lazySchema),
+                new LazySchema(() => lazySchema),
             ),
         ),
     });
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 lazySchema.validate(
                     {
@@ -48,36 +49,37 @@ describe('LaySchema', () => {
                         ],
                     },
                     errorKeeper,
+                    defaultErrorFormatter,
                     false,
                 ).ok,
             );
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
-            assert.ok(
-                !lazySchema.validate(
-                    {
-                        nodes: [
-                            {
-                                nodes: [],
-                            },
-                            'leaf',
-                            {
-                                nodes: [
-                                    {
-                                        nodes: [12],
-                                    },
-                                    'leaf',
-                                ],
-                            },
-                        ],
-                    },
-                    errorKeeper,
-                    false,
-                ).ok,
+            const errorKeeper = new ErrorKeeper();
+            const result = lazySchema.validate(
+                {
+                    nodes: [
+                        {
+                            nodes: [],
+                        },
+                        'leaf',
+                        {
+                            nodes: [
+                                {
+                                    nodes: [12],
+                                },
+                                'leaf',
+                            ],
+                        },
+                    ],
+                },
+                errorKeeper,
+                defaultErrorFormatter,
+                false,
             );
-            assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            assert.ok(!result.ok);
+            assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
                 { pointer: ['nodes', '2'], group: 0, detail: 'Should be "string" type.' },
                 {
                     pointer: ['nodes', '2', 'nodes', '0'],
@@ -100,7 +102,7 @@ describe('LaySchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 lazySchema.cast(
                     {
@@ -120,38 +122,39 @@ describe('LaySchema', () => {
                         },
                     },
                     errorKeeper,
+                    defaultErrorFormatter,
                     false,
                 ).ok,
             );
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
-            assert.ok(
-                !lazySchema.cast(
-                    {
-                        nodes: {
-                            0: {
-                                nodes: [],
-                            },
-                            1: 'leaf',
-                            2: {
-                                nodes: {
-                                    0: {
-                                        nodes: {
-                                            0: {},
-                                        },
+            const errorKeeper = new ErrorKeeper();
+            const result = lazySchema.cast(
+                {
+                    nodes: {
+                        0: {
+                            nodes: [],
+                        },
+                        1: 'leaf',
+                        2: {
+                            nodes: {
+                                0: {
+                                    nodes: {
+                                        0: {},
                                     },
-                                    1: 'leaf',
                                 },
+                                1: 'leaf',
                             },
                         },
                     },
-                    errorKeeper,
-                    false,
-                ).ok,
+                },
+                errorKeeper,
+                defaultErrorFormatter,
+                false,
             );
-            assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            assert.ok(!result.ok);
+            assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
                 { pointer: ['nodes', '2'], group: 0, detail: 'Should be "string" type.' },
                 {
                     pointer: ['nodes', '2', 'nodes', '0'],

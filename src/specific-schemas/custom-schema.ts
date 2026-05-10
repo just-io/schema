@@ -1,15 +1,19 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Defs, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export type CustomSchemaParams<T, L extends string> = {
     validate(
         this: CustomSchema<T, L>,
         value: unknown,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T, unknown>;
+    ): Result<T, ErrorSet<ValidationError>>;
     makeJSONSchema(
         this: CustomSchema<T, L>,
         pointer: Pointer,
@@ -19,9 +23,10 @@ export type CustomSchemaParams<T, L extends string> = {
     cast(
         this: CustomSchema<T, L>,
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T, unknown>;
+    ): Result<T, ErrorSet<ValidationError>>;
 };
 
 export default class CustomSchema<T, L extends string> extends TypeSchema<T, L> {
@@ -33,8 +38,13 @@ export default class CustomSchema<T, L extends string> extends TypeSchema<T, L> 
     }
 
     @withDefault
-    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
-        return this.#params.validate.call(this, value, errorKeeper, useDefault);
+    validate(
+        value: unknown,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
+        useDefault: boolean,
+    ): Result<T, ErrorSet<ValidationError>> {
+        return this.#params.validate.call(this, value, errorKeeper, formatter, useDefault);
     }
 
     makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
@@ -44,9 +54,10 @@ export default class CustomSchema<T, L extends string> extends TypeSchema<T, L> 
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T, unknown> {
-        return this.#params.cast.call(this, value, errorKeeper, useDefault);
+    ): Result<T, ErrorSet<ValidationError>> {
+        return this.#params.cast.call(this, value, errorKeeper, formatter, useDefault);
     }
 }

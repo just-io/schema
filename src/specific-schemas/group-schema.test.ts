@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { ErrorKeeper, defaultErrorFormatter } from '../index';
-
 import GroupSchema from './group-schema';
 import StructureSchema from './structure-schema';
 import ValueSchema from './value-schema';
 import StringSchema from './string-schema';
 import RecordSchema from './record-schema';
 import UnknownSchema from './unknown-schema';
+import { transformToJSON } from '../heplers';
+import { defaultErrorFormatter } from '../error-formatter';
+import { ErrorKeeper } from '../error-keeper';
 
 type Group = { op: 'get'; url: string } | { op: 'add'; data: Record<string, unknown> };
 
@@ -26,19 +27,35 @@ describe('GroupSchema', () => {
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
+            const errorKeeper = new ErrorKeeper();
             assert.ok(
-                groupSchema.validate({ op: 'get', url: 'example.com' }, errorKeeper, false).ok,
+                groupSchema.validate(
+                    { op: 'get', url: 'example.com' },
+                    errorKeeper,
+                    defaultErrorFormatter,
+                    false,
+                ).ok,
             );
-            assert.ok(groupSchema.validate({ op: 'add', data: { a: 12 } }, errorKeeper, false).ok);
+            assert.ok(
+                groupSchema.validate(
+                    { op: 'add', data: { a: 12 } },
+                    errorKeeper,
+                    defaultErrorFormatter,
+                    false,
+                ).ok,
+            );
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
-            assert.ok(
-                !groupSchema.validate({ op: 'delete', path: 'example.com' }, errorKeeper, false).ok,
+            const errorKeeper = new ErrorKeeper();
+            const result = groupSchema.validate(
+                { op: 'delete', path: 'example.com' },
+                errorKeeper,
+                defaultErrorFormatter,
+                false,
             );
-            assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            assert.ok(!result.ok);
+            assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
                 { pointer: ['op'], detail: 'Should be one of "get", "add".' },
             ]);
         });
@@ -46,17 +63,35 @@ describe('GroupSchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
-            assert.ok(groupSchema.cast({ op: 'get', url: 'example.com' }, errorKeeper, false).ok);
-            assert.ok(groupSchema.cast({ op: 'add', data: { a: '12' } }, errorKeeper, false).ok);
+            const errorKeeper = new ErrorKeeper();
+            assert.ok(
+                groupSchema.cast(
+                    { op: 'get', url: 'example.com' },
+                    errorKeeper,
+                    defaultErrorFormatter,
+                    false,
+                ).ok,
+            );
+            assert.ok(
+                groupSchema.cast(
+                    { op: 'add', data: { a: '12' } },
+                    errorKeeper,
+                    defaultErrorFormatter,
+                    false,
+                ).ok,
+            );
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper('default', defaultErrorFormatter);
-            assert.ok(
-                !groupSchema.cast({ op: 'delete', path: 'example.com' }, errorKeeper, false).ok,
+            const errorKeeper = new ErrorKeeper();
+            const result = groupSchema.cast(
+                { op: 'delete', path: 'example.com' },
+                errorKeeper,
+                defaultErrorFormatter,
+                false,
             );
-            assert.deepStrictEqual(errorKeeper.makeStringErrors(), [
+            assert.ok(!result.ok);
+            assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
                 { pointer: ['op'], detail: 'Should be one of "get", "add".' },
             ]);
         });

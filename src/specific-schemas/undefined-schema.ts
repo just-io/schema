@@ -1,19 +1,23 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Schema, Defs, Result, StringStructure, withDefault } from '../schema';
+import { Schema, Defs, StringStructure, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export default class UndefinedSchema<L extends string> extends Schema<undefined, L> {
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<undefined, unknown> {
+    ): Result<undefined, ErrorSet<ValidationError>> {
         if (value !== undefined) {
-            errorKeeper.push(errorKeeper.formatter.undefined());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.undefined() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value: undefined };
@@ -27,17 +31,18 @@ export default class UndefinedSchema<L extends string> extends Schema<undefined,
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<undefined, unknown> {
+    ): Result<undefined, ErrorSet<ValidationError>> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatter.string.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.string.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         if (value !== '') {
-            errorKeeper.push(errorKeeper.formatter.string.maxLength(0));
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.string.maxLength(0) });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value: undefined };

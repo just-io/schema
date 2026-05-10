@@ -1,7 +1,10 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Defs, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export default class StringSchema<T extends string, L extends string> extends TypeSchema<T, L> {
     #enum?: T[];
@@ -12,25 +15,19 @@ export default class StringSchema<T extends string, L extends string> extends Ty
 
     #regexp?: RegExp;
 
-    #validate(value: string, errorKeeper: ErrorKeeper<L>): boolean {
+    #validate(value: string, errorKeeper: ErrorKeeper, formatter: ErrorFormatter): void {
         if (this.#enum && !this.#enum.includes(value as T)) {
-            errorKeeper.push(errorKeeper.formatter.string.enum(this.#enum));
-            return false;
+            errorKeeper.push({ detail: formatter.string.enum(this.#enum) });
         }
         if (this.#regexp && !this.#regexp.test(value)) {
-            errorKeeper.push(errorKeeper.formatter.string.regexp(this.#regexp));
-            return false;
+            errorKeeper.push({ detail: formatter.string.regexp(this.#regexp) });
         }
         if (this.#minLength !== undefined && value.length < this.#minLength) {
-            errorKeeper.push(errorKeeper.formatter.string.minLength(this.#minLength));
-            return false;
+            errorKeeper.push({ detail: formatter.string.minLength(this.#minLength) });
         }
         if (this.#maxLength !== undefined && value.length > this.#maxLength) {
-            errorKeeper.push(errorKeeper.formatter.string.maxLength(this.#maxLength));
-            return false;
+            errorKeeper.push({ detail: formatter.string.maxLength(this.#maxLength) });
         }
-
-        return true;
     }
 
     constructor(values: T[] = []) {
@@ -43,16 +40,18 @@ export default class StringSchema<T extends string, L extends string> extends Ty
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<T, unknown> {
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatter.string.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.string.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
-        if (!this.#validate(value, errorKeeper)) {
-            return { ok: false, error: true };
+        this.#validate(value, errorKeeper, formatter);
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value: value as T };
@@ -74,16 +73,18 @@ export default class StringSchema<T extends string, L extends string> extends Ty
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<T, unknown> {
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatter.string.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.string.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
-        if (!this.#validate(value, errorKeeper)) {
-            return { ok: false, error: true };
+        this.#validate(value, errorKeeper, formatter);
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value: value as T };

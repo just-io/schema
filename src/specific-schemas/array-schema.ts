@@ -1,7 +1,10 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
+import { ErrorSet } from '../error-set';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { TypeSchema, Schema, Defs, StringStructure, Result, withDefault } from '../schema';
+import { Result } from '../result';
+import { TypeSchema, Schema, Defs, StringStructure, withDefault } from '../schema';
 
 export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L> {
     #itemSchema: Schema<T, L>;
@@ -12,24 +15,21 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
 
     #unique?: boolean;
 
-    #validate(values: T[], errorKeeper: ErrorKeeper<L>, length: number): boolean {
+    #validate(
+        values: T[],
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
+        length: number,
+    ): void {
         if (this.#maxItems !== undefined && length > this.#maxItems) {
-            errorKeeper.push(errorKeeper.formatter.array.maxItems(this.#maxItems));
-            return false;
+            errorKeeper.push({ detail: formatter.array.maxItems(this.#maxItems) });
         }
         if (this.#minItems !== undefined && length < this.#minItems) {
-            errorKeeper.push(errorKeeper.formatter.array.minItems(this.#minItems));
-            return false;
+            errorKeeper.push({ detail: formatter.array.minItems(this.#minItems) });
         }
         if (this.#unique && length !== new Set(values).size) {
-            errorKeeper.push(errorKeeper.formatter.array.unique());
-            return false;
+            errorKeeper.push({ detail: formatter.array.unique() });
         }
-        if (values.length !== length) {
-            return false;
-        }
-
-        return true;
     }
 
     constructor(itemSchema: Schema<T, L>) {
@@ -40,34 +40,49 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T[], unknown> {
+    ): Result<T[], ErrorSet<ValidationError>> {
         if (!Array.isArray(value)) {
-            errorKeeper.push(errorKeeper.formatter.array.type());
-            return { ok: false, error: true };
-        }
-        const itemValues = value
-            .map((item, i) => this.#itemSchema.validate(item, errorKeeper.child(i), useDefault))
-            .filter((result) => result.ok)
-            .map((result) => result.value);
-
-        if (!this.#validate(itemValues, errorKeeper, value.length)) {
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.array.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
+        const itemValues: T[] = [];
+        for (let i = 0; i < value.length; i++) {
+            const result = this.#itemSchema.validate(
+                value[i],
+                errorKeeper.child(i),
+                formatter,
+                useDefault,
+            );
+            if (result.ok) {
+                itemValues.push(result.value);
+            } else {
+                errorKeeper.append(result.error);
+            }
+        }
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
+        }
+        this.#validate(itemValues, errorKeeper, formatter, value.length);
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
+        }
         return { ok: true, value: itemValues };
     }
 
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T[], unknown> {
+    ): Result<T[], ErrorSet<ValidationError>> {
         if (value === undefined || value instanceof File) {
-            errorKeeper.push(errorKeeper.formatter.array.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.array.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         const array = Array.isArray(value)
             ? value
@@ -78,15 +93,27 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
                   }, [] as StringStructure[]),
               );
 
-        const itemValues = array
-            .map((item, i) => this.#itemSchema.cast(item, errorKeeper.child(i), useDefault))
-            .filter((result) => result.ok)
-            .map((result) => result.value);
-
-        if (!this.#validate(itemValues, errorKeeper, array.length)) {
-            return { ok: false, error: true };
+        const itemValues: T[] = [];
+        for (let i = 0; i < array.length; i++) {
+            const result = this.#itemSchema.cast(
+                array[i],
+                errorKeeper.child(i),
+                formatter,
+                useDefault,
+            );
+            if (result.ok) {
+                itemValues.push(result.value);
+            } else {
+                errorKeeper.append(result.error);
+            }
         }
-
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
+        }
+        this.#validate(itemValues, errorKeeper, formatter, array.length);
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
+        }
         return { ok: true, value: itemValues };
     }
 
@@ -111,8 +138,8 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
             title: this.getTitle(lang),
             description: this.getDescription(lang),
             items: this.#itemSchema.makeJSONSchema(pointer.concat('item'), defs, lang),
-            minItems: this.#maxItems,
-            maxItems: this.#minItems,
+            minItems: this.#minItems,
+            maxItems: this.#maxItems,
             uniqueItems: this.#unique,
             defaut: this.getDefault(),
         };

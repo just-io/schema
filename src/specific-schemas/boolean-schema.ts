@@ -1,19 +1,23 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
+import { ErrorSet } from '../error-set';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Result, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Result } from '../result';
+import { Defs, StringStructure, TypeSchema, withDefault } from '../schema';
 
 export default class BooleanSchema<L extends string> extends TypeSchema<boolean, L> {
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<boolean, unknown> {
+    ): Result<boolean, ErrorSet<ValidationError>> {
         if (typeof value !== 'boolean') {
-            errorKeeper.push(errorKeeper.formatter.boolean());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.boolean() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value };
@@ -31,13 +35,14 @@ export default class BooleanSchema<L extends string> extends TypeSchema<boolean,
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
-    ): Result<boolean, unknown> {
+    ): Result<boolean, ErrorSet<ValidationError>> {
         if (typeof value !== 'string') {
-            errorKeeper.push(errorKeeper.formatter.string.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.string.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         return { ok: true, value: value !== '' };
     }

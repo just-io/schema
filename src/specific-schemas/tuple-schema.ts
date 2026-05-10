@@ -1,7 +1,10 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { TypeSchema, Schema, Defs, Result, StringStructure, withDefault } from '../schema';
+import { TypeSchema, Schema, Defs, StringStructure, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export type TupleSchemas<T extends unknown[], L extends string> = {
     [I in keyof T]: Schema<T[I], L>;
@@ -16,35 +19,47 @@ export default class TupleSchema<T extends unknown[], L extends string> extends 
     }
 
     @withDefault
-    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
+    validate(
+        value: unknown,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
+        useDefault: boolean,
+    ): Result<T, ErrorSet<ValidationError>> {
         if (!Array.isArray(value)) {
-            errorKeeper.push(errorKeeper.formatter.array.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.array.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         if (value.length > this.#tupleSchemas.length) {
             for (let i = this.#tupleSchemas.length; i < value.length; i++) {
-                errorKeeper.push(
-                    errorKeeper.pointer.concat(i),
-                    errorKeeper.formatter.object.notexistField(),
-                );
+                errorKeeper.push({
+                    pointer: errorKeeper.pointer.concat(i),
+                    detail: formatter.object.notexistField(),
+                });
             }
-            return { ok: false, error: true };
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         if (value.length !== this.#tupleSchemas.length) {
-            errorKeeper.push(errorKeeper.formatter.array.maxItems(this.#tupleSchemas.length));
-            errorKeeper.push(errorKeeper.formatter.array.minItems(this.#tupleSchemas.length));
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.array.maxItems(this.#tupleSchemas.length) });
+            errorKeeper.push({ detail: formatter.array.minItems(this.#tupleSchemas.length) });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
-        const itemValues = value
-            .map((item, i) =>
-                this.#tupleSchemas[i].validate(item, errorKeeper.child(i), useDefault),
-            )
-            .filter((result) => result.ok)
-            .map((result) => result.value);
-
-        if (itemValues.length !== this.#tupleSchemas.length) {
-            return { ok: false, error: true };
+        const itemValues: unknown[] = [];
+        for (let i = 0; i < value.length; i++) {
+            const result = this.#tupleSchemas[i].validate(
+                value[i],
+                errorKeeper.child(i),
+                formatter,
+                useDefault,
+            );
+            if (result.ok) {
+                itemValues.push(result.value);
+            } else {
+                errorKeeper.append(result.error);
+            }
+        }
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value: itemValues as T };
@@ -65,12 +80,13 @@ export default class TupleSchema<T extends unknown[], L extends string> extends 
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T, unknown> {
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value === 'string' || value === undefined || value instanceof File) {
-            errorKeeper.push(errorKeeper.formatter.array.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.array.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         const array = Array.isArray(value)
             ? value
@@ -83,26 +99,35 @@ export default class TupleSchema<T extends unknown[], L extends string> extends 
 
         if (array.length > this.#tupleSchemas.length) {
             for (let i = this.#tupleSchemas.length; i < array.length; i++) {
-                errorKeeper.push(
-                    errorKeeper.pointer.concat(i),
-                    errorKeeper.formatter.object.notexistField(),
-                );
+                errorKeeper.push({
+                    pointer: errorKeeper.pointer.concat(i),
+                    detail: formatter.object.notexistField(),
+                });
             }
-            return { ok: false, error: true };
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         if (array.length !== this.#tupleSchemas.length) {
-            errorKeeper.push(errorKeeper.formatter.array.maxItems(this.#tupleSchemas.length));
-            errorKeeper.push(errorKeeper.formatter.array.minItems(this.#tupleSchemas.length));
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.array.maxItems(this.#tupleSchemas.length) });
+            errorKeeper.push({ detail: formatter.array.minItems(this.#tupleSchemas.length) });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
-        const itemValues = array
-            .map((item, i) => this.#tupleSchemas[i].cast(item, errorKeeper.child(i), useDefault))
-            .filter((result) => result.ok)
-            .map((result) => result.value);
-
-        if (itemValues.length !== this.#tupleSchemas.length) {
-            return { ok: false, error: true };
+        const itemValues: unknown[] = [];
+        for (let i = 0; i < array.length; i++) {
+            const result = this.#tupleSchemas[i].cast(
+                array[i],
+                errorKeeper.child(i),
+                formatter,
+                useDefault,
+            );
+            if (result.ok) {
+                itemValues.push(result.value);
+            } else {
+                errorKeeper.append(result.error);
+            }
+        }
+        if (errorKeeper.hasErrors()) {
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
 
         return { ok: true, value: itemValues as T };

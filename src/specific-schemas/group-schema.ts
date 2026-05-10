@@ -1,7 +1,10 @@
-import { ErrorKeeper } from '../error-keeper';
+import { ErrorFormatter } from '../error-formatter';
+import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { TypeSchema, Schema, Defs, StringStructure, Result, withDefault } from '../schema';
+import { TypeSchema, Schema, Defs, StringStructure, withDefault } from '../schema';
+import { Result } from '../result';
+import { ErrorSet } from '../error-set';
 
 export type GroupSchemas<T, K extends keyof T & string, L extends string> = T[K] extends string
     ? {
@@ -25,30 +28,36 @@ export default class GroupSchema<
     }
 
     @withDefault
-    validate(value: unknown, errorKeeper: ErrorKeeper<L>, useDefault: boolean): Result<T, unknown> {
+    validate(
+        value: unknown,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
+        useDefault: boolean,
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push(errorKeeper.formatter.object.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.object.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         if (!(this.#key in value)) {
-            errorKeeper.push(
-                errorKeeper.pointer.concat(this.#key),
-                errorKeeper.formatter.object.existField(),
-            );
-            return { ok: false, error: true };
+            errorKeeper.push({
+                pointer: errorKeeper.pointer.concat(this.#key),
+                detail: formatter.object.existField(),
+            });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         const type = (value as Record<string, string>)[this.#key as string];
         if (!(type in this.#groupSchemas)) {
-            errorKeeper.push(
-                errorKeeper.pointer.concat(this.#key),
-                errorKeeper.formatter.object.oneOf(Object.keys(this.#groupSchemas)),
-            );
-            return { ok: false, error: true };
+            errorKeeper.push({
+                pointer: errorKeeper.pointer.concat(this.#key),
+                detail: formatter.object.oneOf(Object.keys(this.#groupSchemas)),
+            });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>).validate(
             value,
             errorKeeper,
+            formatter,
             useDefault,
         );
     }
@@ -67,32 +76,34 @@ export default class GroupSchema<
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper<L>,
+        errorKeeper: ErrorKeeper,
+        formatter: ErrorFormatter,
         useDefault: boolean,
-    ): Result<T, unknown> {
+    ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'object' || Array.isArray(value) || value instanceof File) {
-            errorKeeper.push(errorKeeper.formatter.object.type());
-            return { ok: false, error: true };
+            errorKeeper.push({ detail: formatter.object.type() });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         if (!(this.#key in value)) {
-            errorKeeper.push(
-                errorKeeper.pointer.concat(this.#key),
-                errorKeeper.formatter.object.existField(),
-            );
-            return { ok: false, error: true };
+            errorKeeper.push({
+                pointer: errorKeeper.pointer.concat(this.#key),
+                detail: formatter.object.existField(),
+            });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         const type = (value as Record<string, string>)[this.#key as string];
         if (!(type in this.#groupSchemas)) {
-            errorKeeper.push(
-                errorKeeper.pointer.concat(this.#key),
-                errorKeeper.formatter.object.oneOf(Object.keys(this.#groupSchemas)),
-            );
-            return { ok: false, error: true };
+            errorKeeper.push({
+                pointer: errorKeeper.pointer.concat(this.#key),
+                detail: formatter.object.oneOf(Object.keys(this.#groupSchemas)),
+            });
+            return { ok: false, error: errorKeeper.makeErrorSet() };
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return (this.#groupSchemas[type as keyof GroupSchemas<T, K, L>] as Schema<any, L>).cast(
             value,
             errorKeeper,
+            formatter,
             useDefault,
         );
     }
