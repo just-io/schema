@@ -1,26 +1,23 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { ErrorKeeper, defaultErrorFormatter } from '../index';
-
 import LazySchema from './lazy-schema';
 import StringSchema from './string-schema';
 import StructureSchema from './structure-schema';
 import ArraySchema from './array-schema';
 import UnionSchema from './union-schema';
 import { transformToJSON } from '../heplers';
+import { Pointer } from '../pointer';
+import { defaultErrorFormatter } from '../error-formatter';
 
 type RecursiveType = {
     nodes: (RecursiveType | string)[];
 };
 
 describe('LazySchema', () => {
-    const lazySchema: StructureSchema<RecursiveType, 'default'> = new StructureSchema<
-        RecursiveType,
-        'default'
-    >({
+    const lazySchema: StructureSchema<RecursiveType> = new StructureSchema<RecursiveType>({
         nodes: new ArraySchema(
-            new UnionSchema<RecursiveType | string, 'default'>(
+            new UnionSchema<RecursiveType | string>(
                 new StringSchema(),
                 new LazySchema(() => lazySchema),
             ),
@@ -29,7 +26,6 @@ describe('LazySchema', () => {
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 lazySchema.validate(
                     {
@@ -48,7 +44,7 @@ describe('LazySchema', () => {
                             },
                         ],
                     },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -56,7 +52,6 @@ describe('LazySchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = lazySchema.validate(
                 {
                     nodes: [
@@ -74,7 +69,7 @@ describe('LazySchema', () => {
                         },
                     ],
                 },
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );
@@ -102,7 +97,6 @@ describe('LazySchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 lazySchema.cast(
                     {
@@ -121,7 +115,7 @@ describe('LazySchema', () => {
                             },
                         },
                     },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -129,7 +123,6 @@ describe('LazySchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = lazySchema.cast(
                 {
                     nodes: {
@@ -149,7 +142,7 @@ describe('LazySchema', () => {
                         },
                     },
                 },
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );

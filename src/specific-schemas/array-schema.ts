@@ -1,13 +1,12 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { ErrorSet } from '../error-set';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
 import { Result } from '../result';
-import { TypeSchema, Schema, Defs, StringStructure, withDefault } from '../schema';
+import { TypeSchema, Schema, Defs, StringStructure, withDefault, ValidationError } from '../schema';
 
-export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L> {
-    #itemSchema: Schema<T, L>;
+export default class ArraySchema<T> extends TypeSchema<T[]> {
+    #itemSchema: Schema<T>;
 
     #maxItems?: number;
 
@@ -17,22 +16,25 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
 
     #validate(
         values: T[],
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         length: number,
-    ): void {
+    ): ErrorSet<ValidationError> {
+        const errorSet = new ErrorSet<ValidationError>();
         if (this.#maxItems !== undefined && length > this.#maxItems) {
-            errorKeeper.push({ detail: formatter.array.maxItems(this.#maxItems) });
+            errorSet.add({ pointer, detail: formatter.array.maxItems(this.#maxItems) });
         }
         if (this.#minItems !== undefined && length < this.#minItems) {
-            errorKeeper.push({ detail: formatter.array.minItems(this.#minItems) });
+            errorSet.add({ pointer, detail: formatter.array.minItems(this.#minItems) });
         }
         if (this.#unique && length !== new Set(values).size) {
-            errorKeeper.push({ detail: formatter.array.unique() });
+            errorSet.add({ pointer, detail: formatter.array.unique() });
         }
+
+        return errorSet;
     }
 
-    constructor(itemSchema: Schema<T, L>) {
+    constructor(itemSchema: Schema<T>) {
         super();
         this.#itemSchema = itemSchema;
     }
@@ -40,35 +42,41 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T[], ErrorSet<ValidationError>> {
         if (!Array.isArray(value)) {
-            errorKeeper.push({ detail: formatter.array.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.array.type(),
+                }),
+            };
         }
 
         const itemValues: T[] = [];
+        const errorSet = new ErrorSet<ValidationError>();
         for (let i = 0; i < value.length; i++) {
             const result = this.#itemSchema.validate(
                 value[i],
-                errorKeeper.child(i),
+                pointer.concat(i),
                 formatter,
                 useDefault,
             );
             if (result.ok) {
                 itemValues.push(result.value);
             } else {
-                errorKeeper.append(result.error);
+                errorSet.append(result.error);
             }
         }
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
-        this.#validate(itemValues, errorKeeper, formatter, value.length);
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        errorSet.append(this.#validate(itemValues, pointer, formatter, value.length));
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
         return { ok: true, value: itemValues };
     }
@@ -76,13 +84,18 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T[], ErrorSet<ValidationError>> {
         if (value === undefined || value instanceof File) {
-            errorKeeper.push({ detail: formatter.array.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.array.type(),
+                }),
+            };
         }
         const array = Array.isArray(value)
             ? value
@@ -94,25 +107,26 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
               );
 
         const itemValues: T[] = [];
+        const errorSet = new ErrorSet<ValidationError>();
         for (let i = 0; i < array.length; i++) {
             const result = this.#itemSchema.cast(
                 array[i],
-                errorKeeper.child(i),
+                pointer.concat(i),
                 formatter,
                 useDefault,
             );
             if (result.ok) {
                 itemValues.push(result.value);
             } else {
-                errorKeeper.append(result.error);
+                errorSet.append(result.error);
             }
         }
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
-        this.#validate(itemValues, errorKeeper, formatter, array.length);
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        errorSet.append(this.#validate(itemValues, pointer, formatter, array.length));
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
         return { ok: true, value: itemValues };
     }
@@ -132,7 +146,7 @@ export default class ArraySchema<T, L extends string> extends TypeSchema<T[], L>
         return this;
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return {
             type: 'array',
             title: this.getTitle(lang),

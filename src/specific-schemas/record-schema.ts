@@ -1,15 +1,14 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { TypeSchema, Schema, Defs, StringStructure, withDefault } from '../schema';
+import { TypeSchema, Schema, Defs, StringStructure, withDefault, ValidationError } from '../schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export default class RecordSchema<T, L extends string> extends TypeSchema<Record<string, T>, L> {
-    #valueSchema: Schema<T, L>;
+export default class RecordSchema<T> extends TypeSchema<Record<string, T>> {
+    #valueSchema: Schema<T>;
 
-    constructor(valueSchema: Schema<T, L>) {
+    constructor(valueSchema: Schema<T>) {
         super();
         this.#valueSchema = valueSchema;
     }
@@ -17,31 +16,37 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<Record<string, T>, ErrorSet<ValidationError>> {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push({ detail: formatter.object.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.object.type(),
+                }),
+            };
         }
         const castedEntries: [string, T][] = [];
         const entries = Object.entries(value);
+        const errorSet = new ErrorSet<ValidationError>();
         for (const entry of entries) {
             const result = this.#valueSchema.validate(
                 entry[1],
-                errorKeeper.child(entry[0]),
+                pointer.concat(entry[0]),
                 formatter,
                 useDefault,
             );
             if (result.ok) {
                 castedEntries.push([entry[0], result.value]);
             } else {
-                errorKeeper.append(result.error);
+                errorSet.append(result.error);
             }
         }
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
         return {
             ok: true,
@@ -49,7 +54,7 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
         };
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return {
             type: 'object',
             title: this.getTitle(lang),
@@ -66,7 +71,7 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<Record<string, T>, ErrorSet<ValidationError>> {
@@ -76,26 +81,32 @@ export default class RecordSchema<T, L extends string> extends TypeSchema<Record
             Array.isArray(value) ||
             value instanceof File
         ) {
-            errorKeeper.push({ detail: formatter.object.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.object.type(),
+                }),
+            };
         }
         const castedEntries: [string, T][] = [];
         const entries = Object.entries(value);
+        const errorSet = new ErrorSet<ValidationError>();
         for (const entry of entries) {
             const result = this.#valueSchema.cast(
                 entry[1],
-                errorKeeper.child(entry[0]),
+                pointer.concat(entry[0]),
                 formatter,
                 useDefault,
             );
             if (result.ok) {
                 castedEntries.push([entry[0], result.value]);
             } else {
-                errorKeeper.append(result.error);
+                errorSet.append(result.error);
             }
         }
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
         return {
             ok: true,

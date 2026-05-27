@@ -1,5 +1,4 @@
 import { defaultErrorFormatter, ErrorFormatter } from './error-formatter';
-import { ErrorKeeper, ValidationError } from './error-keeper';
 import { ErrorSet } from './error-set';
 import { JSONSchemaRoot, JSONSchemaValue } from './json-schema';
 import { Pointer } from './pointer';
@@ -7,14 +6,20 @@ import { Result } from './result';
 
 const dummyJSONSchemaValue: JSONSchemaValue = {};
 
-export class Defs<L extends string> {
-    #defs: Map<Schema<unknown, L>, [Pointer, JSONSchemaValue]> = new Map();
+export type ValidationError = {
+    pointer: Pointer;
+    detail: string;
+    group?: number;
+};
+
+export class Defs {
+    #defs: Map<Schema<unknown>, [Pointer, JSONSchemaValue]> = new Map();
 
     #makeRef(pointer: Pointer): string {
         return pointer.toString('/', '#', '$defs');
     }
 
-    collectSchema(pointer: Pointer, schema: Schema<unknown, L>, lang: L): JSONSchemaValue {
+    collectSchema(pointer: Pointer, schema: Schema<unknown>, lang: string): JSONSchemaValue {
         const def = this.#defs.get(schema);
         if (def) {
             let title: string | undefined;
@@ -65,18 +70,18 @@ export type StringStructure =
           [key: string]: StringStructure;
       };
 
-export function withDefault<T, L extends string, V>(
+export function withDefault<T, V>(
     method: (
         value: V,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ) => Result<T, ErrorSet<ValidationError>>,
 ) {
     return function (
-        this: Schema<T, L>,
+        this: Schema<T>,
         value: V,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
@@ -87,21 +92,21 @@ export function withDefault<T, L extends string, V>(
             }
         }
 
-        return method.call(this, value, errorKeeper, formatter, useDefault);
+        return method.call(this, value, pointer, formatter, useDefault);
     };
 }
 
-export abstract class Schema<T, L extends string> {
+export abstract class Schema<T> {
     /**
      * Validate value for type T and return valid value wrapped in type `Result`
      * @param value incoming value for checking
-     * @param errorKeeper structure for collecting validation errors
+     * @param pointer pointer for current value
      * @param formatter object containing function for format errors
      * @param useDefault use default value if current value queal undefined
      */
     abstract validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>>;
@@ -112,22 +117,23 @@ export abstract class Schema<T, L extends string> {
      * @param defs
      * @param lang
      */
-    abstract makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue;
+    abstract makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue;
 
     /**
      * Type guard for type T but throw error set if value has not type T
      * @param value incoming value for checking
-     * @param errorKeeper structure for collecting validation errors
+     * @param pointer pointer for current value
      * @param formatter object containing function for format errors
      */
     assert(value: unknown): value is T;
-    assert(value: unknown, errorKeeper: ErrorKeeper, formatter: ErrorFormatter): value is T;
-    assert(value: unknown, errorKeeper?: ErrorKeeper, formatter?: ErrorFormatter): value is T {
-        if (errorKeeper && formatter && !this.is(value, errorKeeper, formatter)) {
-            throw errorKeeper.makeErrorSet();
-        }
-        if (!this.is(value)) {
-            throw new Error('Invalid value');
+    assert(value: unknown, pointer: Pointer, formatter: ErrorFormatter): value is T;
+    assert(value: unknown, pointer?: Pointer, formatter?: ErrorFormatter): value is T {
+        const result =
+            pointer && formatter
+                ? this.validate(value, pointer, formatter, false)
+                : this.validate(value, new Pointer(), defaultErrorFormatter, false);
+        if (!result.ok) {
+            throw result.error;
         }
 
         return true;
@@ -136,41 +142,41 @@ export abstract class Schema<T, L extends string> {
     /**
      * Check value for type T and return valid value wrapped in type `Result`
      * @param value incoming value for checking
-     * @param errorKeeper structure for collecting validation errors
+     * @param pointer pointer for current value
      * @param formatter object containing function for format errors
      */
     check(value: unknown): Result<T, ErrorSet<ValidationError>>;
     check(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
     ): Result<T, ErrorSet<ValidationError>>;
     check(
         value: unknown,
-        errorKeeper?: ErrorKeeper,
+        pointer?: Pointer,
         formatter?: ErrorFormatter,
     ): Result<T, ErrorSet<ValidationError>> {
-        if (errorKeeper && formatter) {
-            return this.validate(value, errorKeeper, formatter, false);
+        if (pointer && formatter) {
+            return this.validate(value, pointer, formatter, false);
         }
 
-        return this.validate(value, new ErrorKeeper(), defaultErrorFormatter, false);
+        return this.validate(value, new Pointer(), defaultErrorFormatter, false);
     }
 
     /**
      * Type guard for type T returns true if value has type T otherwise false
      * @param value incoming value for checking
-     * @param errorKeeper structure for collecting validation errors
+     * @param pointer pointer for current value
      * @param formatter object containing function for format errors
      */
     is(value: unknown): value is T;
-    is(value: unknown, errorKeeper: ErrorKeeper, formatter: ErrorFormatter): value is T;
-    is(value: unknown, errorKeeper?: ErrorKeeper, formatter?: ErrorFormatter): value is T {
-        if (errorKeeper && formatter) {
-            return this.validate(value, errorKeeper, formatter, false).ok;
+    is(value: unknown, pointer: Pointer, formatter: ErrorFormatter): value is T;
+    is(value: unknown, pointer?: Pointer, formatter?: ErrorFormatter): value is T {
+        if (pointer && formatter) {
+            return this.validate(value, pointer, formatter, false).ok;
         }
 
-        return this.validate(value, new ErrorKeeper(), defaultErrorFormatter, false).ok;
+        return this.validate(value, new Pointer(), defaultErrorFormatter, false).ok;
     }
 
     /**
@@ -178,8 +184,8 @@ export abstract class Schema<T, L extends string> {
      * @param lang language for generating titles and descriptions
      * @returns JSON Schema
      */
-    generateJSONSchema(lang: L): JSONSchemaRoot {
-        const defs = new Defs<L>();
+    generateJSONSchema(lang: string): JSONSchemaRoot {
+        const defs = new Defs();
         const jsonSchemaRoot: JSONSchemaRoot = this.makeJSONSchema(new Pointer(), defs, lang);
         if (defs.size) {
             jsonSchemaRoot.$defs = defs.makeDefs();
@@ -195,20 +201,20 @@ export abstract class Schema<T, L extends string> {
     /**
      * Cast value to type T and returns valid value wrapped in type `Result`
      * @param value incoming value for checking
-     * @param errorKeeper structure for collecting validation errors
+     * @param pointer pointer for current value
      * @param formatter object containing function for format errors
      * @param useDefault use default value if current value queal undefined
      */
     abstract cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>>;
 
     #compose(
         entries: [Pointer, string | File][],
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
@@ -222,11 +228,13 @@ export abstract class Schema<T, L extends string> {
                     Array.isArray(current) ||
                     current instanceof File
                 ) {
-                    errorKeeper.push({
-                        pointer: entry[0],
-                        detail: formatter.path(),
-                    });
-                    return { ok: false, error: errorKeeper.makeErrorSet() };
+                    return {
+                        ok: false,
+                        error: new ErrorSet<ValidationError>().add({
+                            pointer: pointer.append(entry[0]),
+                            detail: formatter.path(),
+                        }),
+                    };
                 }
                 if (i === paths.length - 1) {
                     if (Array.isArray(current[paths[i]])) {
@@ -245,12 +253,12 @@ export abstract class Schema<T, L extends string> {
             }
         }
 
-        return this.cast(value, errorKeeper, formatter, useDefault);
+        return this.cast(value, pointer, formatter, useDefault);
     }
 
     compose(
         source: FormData | URLSearchParams | Record<string, string | string[] | File | File[]>,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
         separator = '/',
@@ -262,35 +270,35 @@ export abstract class Schema<T, L extends string> {
                 entries.push([Pointer.fromString(key, separator, rootsCount), value]);
             });
         } else {
-            Object.entries(source).forEach(([pointer, value]) => {
+            Object.entries(source).forEach(([key, value]) => {
                 if (Array.isArray(value)) {
                     for (const v of value) {
-                        entries.push([Pointer.fromString(pointer, separator, rootsCount), v]);
+                        entries.push([Pointer.fromString(key, separator, rootsCount), v]);
                     }
                 } else {
-                    entries.push([Pointer.fromString(pointer, separator, rootsCount), value]);
+                    entries.push([Pointer.fromString(key, separator, rootsCount), value]);
                 }
             });
         }
 
-        return this.#compose(entries, errorKeeper, formatter, useDefault);
+        return this.#compose(entries, pointer, formatter, useDefault);
     }
 }
 
-export abstract class TypeSchema<T, L extends string> extends Schema<T, L> {
-    #title?: Record<L, string>;
+export abstract class TypeSchema<T> extends Schema<T> {
+    #title?: Record<string, string>;
 
-    #description?: Record<L, string>;
+    #description?: Record<string, string>;
 
     #default?: T | (() => T);
 
-    title(title: Record<L, string>): this {
+    title(title: Record<string, string>): this {
         this.#title = title;
 
         return this;
     }
 
-    description(description: Record<L, string>): this {
+    description(description: Record<string, string>): this {
         this.#description = description;
 
         return this;
@@ -302,11 +310,11 @@ export abstract class TypeSchema<T, L extends string> extends Schema<T, L> {
         return this;
     }
 
-    getDescription(lang: L): string | undefined {
+    getDescription(lang: string): string | undefined {
         return this.#description?.[lang];
     }
 
-    getTitle(lang: L): string | undefined {
+    getTitle(lang: string): string | undefined {
         return this.#title?.[lang];
     }
 

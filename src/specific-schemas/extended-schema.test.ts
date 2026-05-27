@@ -1,36 +1,41 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { ErrorKeeper, defaultErrorFormatter } from '../index';
-
 import ExtendedSchema from './extended-schema';
 import RecordSchema from './record-schema';
 import StringSchema from './string-schema';
 import { transformToJSON } from '../heplers';
+import { Result } from '../result';
+import { Pointer } from '../pointer';
+import { defaultErrorFormatter } from '../error-formatter';
 
 describe('ExtendedSchema', () => {
     function extendedValidator(
         value: Record<string, string>,
-        lang: 'default',
-        innerErrorKeeper: ErrorKeeper,
-    ): boolean {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        lang: string,
+    ): Result<true, string> {
         if (Object.keys(value).length === 0) {
-            innerErrorKeeper.push({ detail: 'Should ne not empty.' });
-            return false;
+            return {
+                ok: false,
+                error: 'Should ne not empty.',
+            };
         }
-        return true;
+        return {
+            ok: true,
+            value: true,
+        };
     }
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 new ExtendedSchema(
                     new RecordSchema(new StringSchema()),
                     extendedValidator,
                 ).validate(
                     { name: 'name', message: 'message' },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -38,11 +43,10 @@ describe('ExtendedSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = new ExtendedSchema(
                 new RecordSchema(new StringSchema()),
                 extendedValidator,
-            ).validate({}, errorKeeper, defaultErrorFormatter, false);
+            ).validate({}, new Pointer(), defaultErrorFormatter, false);
             assert.ok(!result.ok);
             assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
                 { pointer: [], detail: 'Should ne not empty.' },
@@ -52,11 +56,10 @@ describe('ExtendedSchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 new ExtendedSchema(new RecordSchema(new StringSchema()), extendedValidator).cast(
                     { name: 'name', message: 'message' },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -64,11 +67,10 @@ describe('ExtendedSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = new ExtendedSchema(
                 new RecordSchema(new StringSchema()),
                 extendedValidator,
-            ).cast({}, errorKeeper, defaultErrorFormatter, false);
+            ).cast({}, new Pointer(), defaultErrorFormatter, false);
             assert.ok(!result.ok);
             assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
                 { pointer: [], detail: 'Should ne not empty.' },

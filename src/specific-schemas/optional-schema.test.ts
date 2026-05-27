@@ -1,20 +1,19 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { ErrorKeeper, defaultErrorFormatter } from '../index';
-
 import OptionalSchema from './optional-schema';
 import NumberSchema from './number-schema';
 import { transformToJSON } from '../heplers';
+import { Pointer } from '../pointer';
+import { defaultErrorFormatter } from '../error-formatter';
 
 describe('OptionalSchema', () => {
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 new OptionalSchema(new NumberSchema()).validate(
                     123,
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -22,7 +21,7 @@ describe('OptionalSchema', () => {
             assert.ok(
                 new OptionalSchema(new NumberSchema()).validate(
                     undefined,
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -30,10 +29,9 @@ describe('OptionalSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = new OptionalSchema(new NumberSchema()).validate(
                 '1234',
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );
@@ -46,11 +44,10 @@ describe('OptionalSchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 new OptionalSchema(new NumberSchema()).cast(
                     '123',
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -58,7 +55,7 @@ describe('OptionalSchema', () => {
             assert.ok(
                 new OptionalSchema(new NumberSchema()).cast(
                     undefined,
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -66,10 +63,9 @@ describe('OptionalSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = new OptionalSchema(new NumberSchema()).cast(
                 {},
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );

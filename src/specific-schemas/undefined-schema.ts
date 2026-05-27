@@ -1,48 +1,62 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Schema, Defs, StringStructure, withDefault } from '../schema';
+import { Schema, Defs, StringStructure, withDefault, ValidationError } from '../schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export default class UndefinedSchema<L extends string> extends Schema<undefined, L> {
+export default class UndefinedSchema extends Schema<undefined> {
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<undefined, ErrorSet<ValidationError>> {
         if (value !== undefined) {
-            errorKeeper.push({ detail: formatter.undefined() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.undefined(),
+                }),
+            };
         }
 
         return { ok: true, value: undefined };
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return {};
     }
 
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<undefined, ErrorSet<ValidationError>> {
         if (typeof value !== 'string') {
-            errorKeeper.push({ detail: formatter.string.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.string.type(),
+                }),
+            };
         }
         if (value !== '') {
-            errorKeeper.push({ detail: formatter.string.maxLength(0) });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.string.maxLength(0),
+                }),
+            };
         }
 
         return { ok: true, value: undefined };

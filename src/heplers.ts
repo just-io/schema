@@ -1,4 +1,4 @@
-import { ValidationError } from './error-keeper';
+import { ValidationError } from './schema';
 
 type JSONValidationError = {
     pointer: string[];

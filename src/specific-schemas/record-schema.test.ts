@@ -1,20 +1,19 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { ErrorKeeper, defaultErrorFormatter } from '../index';
-
 import RecordSchema from './record-schema';
 import StringSchema from './string-schema';
 import { transformToJSON } from '../heplers';
+import { Pointer } from '../pointer';
+import { defaultErrorFormatter } from '../error-formatter';
 
 describe('RecordSchema', () => {
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 new RecordSchema(new StringSchema()).validate(
                     { name: 'name', message: 'message' },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -22,10 +21,9 @@ describe('RecordSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = new RecordSchema(new StringSchema()).validate(
                 { name: 'name', age: 12 },
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );
@@ -38,11 +36,10 @@ describe('RecordSchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 new RecordSchema(new StringSchema()).cast(
                     { name: 'name', message: 'message' },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -50,10 +47,9 @@ describe('RecordSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = new RecordSchema(new StringSchema()).cast(
                 { name: 'name', age: {} },
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );

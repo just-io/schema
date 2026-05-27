@@ -1,12 +1,11 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Defs, StringStructure, TypeSchema, ValidationError, withDefault } from '../schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export default class NumberSchema<T extends number, L extends string> extends TypeSchema<T, L> {
+export default class NumberSchema<T extends number> extends TypeSchema<T> {
     #enum?: T[];
 
     #integer = false;
@@ -15,27 +14,26 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
 
     #maximum?: number;
 
-    #validate(value: number, errorKeeper: ErrorKeeper, formatter: ErrorFormatter): boolean {
+    #validate(
+        value: number,
+        pointer: Pointer,
+        formatter: ErrorFormatter,
+    ): ErrorSet<ValidationError> {
+        const errorSet = new ErrorSet<ValidationError>();
         if (this.#enum && !this.#enum.includes(value as T)) {
-            errorKeeper.push({ detail: formatter.number.enum(this.#enum) });
-            return false;
+            errorSet.add({ pointer, detail: formatter.number.enum(this.#enum) });
         }
         if (this.#minimum !== undefined && value < this.#minimum) {
-            errorKeeper.push({ detail: formatter.number.minimum(this.#minimum) });
-            return false;
+            errorSet.add({ pointer, detail: formatter.number.minimum(this.#minimum) });
         }
         if (this.#maximum !== undefined && value > this.#maximum) {
-            errorKeeper.push({ detail: formatter.number.maximum(this.#maximum) });
-            return false;
+            errorSet.add({ pointer, detail: formatter.number.maximum(this.#maximum) });
         }
-        if (this.#integer) {
-            if (value % 1 !== 0) {
-                errorKeeper.push({ detail: formatter.number.integer() });
-                return false;
-            }
+        if (this.#integer && !Number.isInteger(value)) {
+            errorSet.add({ pointer, detail: formatter.number.integer() });
         }
 
-        return true;
+        return errorSet;
     }
 
     constructor(values: T[] = []) {
@@ -48,24 +46,30 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'number') {
-            errorKeeper.push({ detail: formatter.number.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.number.type(),
+                }),
+            };
         }
 
-        if (!this.#validate(value, errorKeeper, formatter)) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        const errorSet = this.#validate(value, pointer, formatter);
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
 
         return { ok: true, value: value as T };
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return {
             type: this.#integer ? 'integer' : 'number',
             title: this.getTitle(lang),
@@ -80,23 +84,34 @@ export default class NumberSchema<T extends number, L extends string> extends Ty
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'string' || value === '') {
-            errorKeeper.push({ detail: formatter.number.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.number.type(),
+                }),
+            };
         }
 
         const castedValue = Number(value);
         if (Number.isNaN(castedValue)) {
-            errorKeeper.push({ detail: formatter.number.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.number.type(),
+                }),
+            };
         }
-        if (!this.#validate(castedValue, errorKeeper, formatter)) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        const errorSet = this.#validate(castedValue, pointer, formatter);
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
 
         return { ok: true, value: castedValue as T };

@@ -1,22 +1,21 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { TypeSchema, Schema, Defs, StringStructure, withDefault } from '../schema';
+import { TypeSchema, Schema, Defs, StringStructure, withDefault, ValidationError } from '../schema';
 import OptionalSchema from './optional-schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export type FieldSchemas<T, L extends string> = {
-    [K in keyof T]-?: Schema<T[K], L>;
+export type FieldSchemas<T> = {
+    [K in keyof T]-?: Schema<T[K]>;
 };
 
-export default class StructureSchema<T, L extends string> extends TypeSchema<T, L> {
-    #fieldSchemas: FieldSchemas<T, L>;
+export default class StructureSchema<T> extends TypeSchema<T> {
+    #fieldSchemas: FieldSchemas<T>;
 
-    #additionalProps: false | Schema<unknown, L> = false;
+    #additionalProps: false | Schema<unknown> = false;
 
-    constructor(fieldSchemas: FieldSchemas<T, L>) {
+    constructor(fieldSchemas: FieldSchemas<T>) {
         super();
         this.#fieldSchemas = fieldSchemas;
     }
@@ -24,21 +23,27 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'object' || value === null) {
-            errorKeeper.push({ detail: formatter.object.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.object.type(),
+                }),
+            };
         }
 
         const castedEntries: [string, T[keyof T]][] = [];
         const keys = Object.keys(this.#fieldSchemas);
+        const errorSet = new ErrorSet<ValidationError>();
         for (const key of keys) {
-            const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].validate(
+            const result = this.#fieldSchemas[key as keyof FieldSchemas<T>].validate(
                 (value as Record<string, ErrorSet<ValidationError>>)[key],
-                errorKeeper.child(key),
+                pointer.concat(key),
                 formatter,
                 useDefault,
             );
@@ -46,12 +51,12 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 castedEntries.push([key, result.value]);
             } else {
                 if (!(key in value)) {
-                    errorKeeper.push({
-                        pointer: errorKeeper.pointer.concat(key),
+                    errorSet.add({
+                        pointer: pointer.concat(key),
                         detail: formatter.object.existField(),
                     });
                 } else {
-                    errorKeeper.append(result.error);
+                    errorSet.append(result.error);
                 }
             }
         }
@@ -60,25 +65,25 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 if (this.#additionalProps) {
                     const result = this.#additionalProps.validate(
                         (value as Record<string, ErrorSet<ValidationError>>)[key],
-                        errorKeeper.child(key),
+                        pointer.concat(key),
                         formatter,
                         useDefault,
                     );
                     if (result.ok) {
                         castedEntries.push([key, result.value as T[keyof T]]);
                     } else {
-                        errorKeeper.append(result.error);
+                        errorSet.append(result.error);
                     }
                 } else {
-                    errorKeeper.push({
-                        pointer: errorKeeper.pointer.concat(key),
+                    errorSet.add({
+                        pointer: pointer.concat(key),
                         detail: formatter.object.notexistField(),
                     });
                 }
             }
         }
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
         return {
             ok: true,
@@ -86,7 +91,7 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
         };
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return {
             type: 'object',
             title: this.getTitle(lang),
@@ -95,7 +100,7 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 Object.entries(this.#fieldSchemas).map(([key, fieldSchema]) => {
                     return [
                         key,
-                        (fieldSchema as Schema<unknown, L>).makeJSONSchema(
+                        (fieldSchema as Schema<unknown>).makeJSONSchema(
                             pointer.concat(key),
                             defs,
                             lang,
@@ -118,21 +123,27 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'object' || Array.isArray(value) || value instanceof File) {
-            errorKeeper.push({ detail: formatter.object.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.object.type(),
+                }),
+            };
         }
 
         const castedEntries: [string, T[keyof T]][] = [];
         const keys = Object.keys(this.#fieldSchemas);
+        const errorSet = new ErrorSet<ValidationError>();
         for (const key of keys) {
-            const result = this.#fieldSchemas[key as keyof FieldSchemas<T, L>].cast(
+            const result = this.#fieldSchemas[key as keyof FieldSchemas<T>].cast(
                 value[key],
-                errorKeeper.child(key),
+                pointer.concat(key),
                 formatter,
                 useDefault,
             );
@@ -140,12 +151,12 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 castedEntries.push([key, result.value]);
             } else {
                 if (!(key in value)) {
-                    errorKeeper.push({
-                        pointer: errorKeeper.pointer.concat(key),
+                    errorSet.add({
+                        pointer: pointer.concat(key),
                         detail: formatter.object.existField(),
                     });
                 } else {
-                    errorKeeper.append(result.error);
+                    errorSet.append(result.error);
                 }
             }
         }
@@ -154,25 +165,25 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
                 if (this.#additionalProps) {
                     const result = this.#additionalProps.cast(
                         value[key],
-                        errorKeeper.child(key),
+                        pointer.concat(key),
                         formatter,
                         useDefault,
                     );
                     if (result.ok) {
                         castedEntries.push([key, result.value as T[keyof T]]);
                     } else {
-                        errorKeeper.append(result.error);
+                        errorSet.append(result.error);
                     }
                 } else {
-                    errorKeeper.push({
-                        pointer: errorKeeper.pointer.concat(key),
+                    errorSet.add({
+                        pointer: pointer.concat(key),
                         detail: formatter.object.notexistField(),
                     });
                 }
             }
         }
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
         return {
             ok: true,
@@ -180,7 +191,7 @@ export default class StructureSchema<T, L extends string> extends TypeSchema<T, 
         };
     }
 
-    additionalProps(additionalProps: false | Schema<unknown, L>): this {
+    additionalProps(additionalProps: false | Schema<unknown>): this {
         this.#additionalProps = additionalProps;
         return this;
     }

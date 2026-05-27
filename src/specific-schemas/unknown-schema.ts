@@ -1,17 +1,16 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Defs, StringStructure, TypeSchema, ValidationError, withDefault } from '../schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export default class UnknownSchema<L extends string> extends TypeSchema<unknown, L> {
+export default class UnknownSchema extends TypeSchema<unknown> {
     @withDefault
     validate(
         value: unknown,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -20,7 +19,7 @@ export default class UnknownSchema<L extends string> extends TypeSchema<unknown,
         return { ok: true, value };
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return {
             title: this.getTitle(lang),
             description: this.getDescription(lang),
@@ -32,7 +31,7 @@ export default class UnknownSchema<L extends string> extends TypeSchema<unknown,
     cast(
         value: StringStructure,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

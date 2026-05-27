@@ -1,38 +1,37 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Defs, StringStructure, TypeSchema, ValidationError, withDefault } from '../schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export type CustomSchemaParams<T, L extends string> = {
+export type CustomSchemaParams<T> = {
     validate(
-        this: CustomSchema<T, L>,
+        this: CustomSchema<T>,
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>>;
     makeJSONSchema(
-        this: CustomSchema<T, L>,
+        this: CustomSchema<T>,
         pointer: Pointer,
-        defs: Defs<L>,
-        lang: L,
+        defs: Defs,
+        lang: string,
     ): JSONSchemaValue;
     cast(
-        this: CustomSchema<T, L>,
+        this: CustomSchema<T>,
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>>;
 };
 
-export default class CustomSchema<T, L extends string> extends TypeSchema<T, L> {
-    #params: CustomSchemaParams<T, L>;
+export default class CustomSchema<T> extends TypeSchema<T> {
+    #params: CustomSchemaParams<T>;
 
-    constructor(params: CustomSchemaParams<T, L>) {
+    constructor(params: CustomSchemaParams<T>) {
         super();
         this.#params = params;
     }
@@ -40,24 +39,24 @@ export default class CustomSchema<T, L extends string> extends TypeSchema<T, L> 
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
-        return this.#params.validate.call(this, value, errorKeeper, formatter, useDefault);
+        return this.#params.validate.call(this, value, pointer, formatter, useDefault);
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return this.#params.makeJSONSchema.call(this, pointer, defs, lang);
     }
 
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
-        return this.#params.cast.call(this, value, errorKeeper, formatter, useDefault);
+        return this.#params.cast.call(this, value, pointer, formatter, useDefault);
     }
 }

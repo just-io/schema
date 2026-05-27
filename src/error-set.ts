@@ -30,4 +30,12 @@ export class ErrorSet<E> extends Error {
         }
         return this.#errors;
     }
+
+    empty(): boolean {
+        return this.#errors.length === 0;
+    }
+
+    hasErrors(): boolean {
+        return this.#errors.length !== 0;
+    }
 }

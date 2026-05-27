@@ -1,26 +1,28 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { ErrorKeeper, defaultErrorFormatter } from '../index';
-
 import UndefinedSchema from './undefined-schema';
 import { transformToJSON } from '../heplers';
+import { Pointer } from '../pointer';
+import { defaultErrorFormatter } from '../error-formatter';
 
 describe('UndefinedSchema', () => {
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
-                new UndefinedSchema().validate(undefined, errorKeeper, defaultErrorFormatter, false)
-                    .ok,
+                new UndefinedSchema().validate(
+                    undefined,
+                    new Pointer(),
+                    defaultErrorFormatter,
+                    false,
+                ).ok,
             );
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = new UndefinedSchema().validate(
                 '1234',
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );
@@ -33,15 +35,15 @@ describe('UndefinedSchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
-            assert.ok(new UndefinedSchema().cast('', errorKeeper, defaultErrorFormatter, false).ok);
+            assert.ok(
+                new UndefinedSchema().cast('', new Pointer(), defaultErrorFormatter, false).ok,
+            );
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = new UndefinedSchema().cast(
                 {},
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );

@@ -1,23 +1,18 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Schema, StringStructure, withDefault } from '../schema';
+import { Defs, Schema, StringStructure, ValidationError, withDefault } from '../schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export type SpecifyingValidator<T, L extends string> = (
-    value: T,
-    lang: L,
-    errorKeeper: ErrorKeeper,
-) => boolean;
+export type SpecifyingValidator<T> = (value: T, lang: string) => Result<true, string>;
 
-export default class ExtendedSchema<T, L extends string> extends Schema<T, L> {
-    #schema: Schema<T, L>;
+export default class ExtendedSchema<T> extends Schema<T> {
+    #schema: Schema<T>;
 
-    #specifyingValidators: SpecifyingValidator<T, L>[];
+    #specifyingValidators: SpecifyingValidator<T>[];
 
-    constructor(schema: Schema<T, L>, ...specifyingValidators: SpecifyingValidator<T, L>[]) {
+    constructor(schema: Schema<T>, ...specifyingValidators: SpecifyingValidator<T>[]) {
         super();
         this.#schema = schema;
         this.#specifyingValidators = specifyingValidators;
@@ -26,50 +21,58 @@ export default class ExtendedSchema<T, L extends string> extends Schema<T, L> {
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
-        const result = this.#schema.validate(value, errorKeeper, formatter, useDefault);
+        const result = this.#schema.validate(value, pointer, formatter, useDefault);
         if (!result.ok) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return result;
         }
-        let isCorrectedValue = true;
+        const errorSet = new ErrorSet<ValidationError>();
         for (const validator of this.#specifyingValidators) {
-            if (!validator(result.value, errorKeeper.lang as L, errorKeeper as ErrorKeeper)) {
-                isCorrectedValue = false;
+            const validatorResult = validator(result.value, formatter.lang);
+            if (!validatorResult.ok) {
+                errorSet.add({
+                    pointer,
+                    detail: validatorResult.error,
+                });
             }
         }
 
-        return isCorrectedValue
+        return errorSet.empty()
             ? { ok: true, value: result.value }
-            : { ok: false, error: errorKeeper.makeErrorSet() };
+            : { ok: false, error: errorSet };
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return this.#schema.makeJSONSchema(pointer, defs, lang);
     }
 
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
-        const result = this.#schema.cast(value, errorKeeper, formatter, useDefault);
+        const result = this.#schema.cast(value, pointer, formatter, useDefault);
         if (!result.ok) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return result;
         }
-        let isCorrectedValue = true;
+        const errorSet = new ErrorSet<ValidationError>();
         for (const validator of this.#specifyingValidators) {
-            if (!validator(result.value, errorKeeper.lang as L, errorKeeper as ErrorKeeper)) {
-                isCorrectedValue = false;
+            const validatorResult = validator(result.value, formatter.lang);
+            if (!validatorResult.ok) {
+                errorSet.add({
+                    pointer,
+                    detail: validatorResult.error,
+                });
             }
         }
 
-        return isCorrectedValue
+        return errorSet.empty()
             ? { ok: true, value: result.value }
-            : { ok: false, error: errorKeeper.makeErrorSet() };
+            : { ok: false, error: errorSet };
     }
 }

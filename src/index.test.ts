@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { make, ErrorKeeper, defaultErrorFormatter } from './index';
+import { make, defaultErrorFormatter, Pointer } from './index';
 import StructureSchema from './specific-schemas/structure-schema';
 import { transformToJSON } from './heplers';
 
-const schemas = make<'default'>();
+const schemas = make();
 
 type Book = {
     name: string;
@@ -48,13 +48,11 @@ describe('Common schema methods', () => {
 
         describe('with Error Keeper', () => {
             test('should return true when value has right type', () => {
-                const errorKeeper = new ErrorKeeper();
-                assert.ok(schemas.value('str').is('str', errorKeeper, defaultErrorFormatter));
+                assert.ok(schemas.value('str').is('str', new Pointer(), defaultErrorFormatter));
             });
 
             test('should return false when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper();
-                assert.ok(!schemas.value('str').is(12, errorKeeper, defaultErrorFormatter));
+                assert.ok(!schemas.value('str').is(12, new Pointer(), defaultErrorFormatter));
             });
         });
     });
@@ -70,14 +68,12 @@ describe('Common schema methods', () => {
 
         describe('with Error Keeper', () => {
             test('should return true when value has right type', () => {
-                const errorKeeper = new ErrorKeeper();
-                assert.ok(schemas.value('str').assert('str', errorKeeper, defaultErrorFormatter));
+                assert.ok(schemas.value('str').assert('str', new Pointer(), defaultErrorFormatter));
             });
 
             test('should throw error when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper();
                 assert.throws(() =>
-                    schemas.value('str').assert(12, errorKeeper, defaultErrorFormatter),
+                    schemas.value('str').assert(12, new Pointer(), defaultErrorFormatter),
                 );
             });
         });
@@ -94,13 +90,13 @@ describe('Common schema methods', () => {
 
         describe('with Error Keeper', () => {
             test('should return value result when value has right type', () => {
-                const errorKeeper = new ErrorKeeper();
-                assert.ok(schemas.value('str').check('str', errorKeeper, defaultErrorFormatter).ok);
+                assert.ok(
+                    schemas.value('str').check('str', new Pointer(), defaultErrorFormatter).ok,
+                );
             });
 
             test('should return error result when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper();
-                const result = schemas.value('str').check(12, errorKeeper, defaultErrorFormatter);
+                const result = schemas.value('str').check(12, new Pointer(), defaultErrorFormatter);
                 assert.ok(!result.ok);
                 assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
                     { pointer: [], detail: 'Should be equal "str".' },
@@ -241,15 +237,14 @@ describe('Common schema methods', () => {
             });
         });
 
-        const lazySchema: StructureSchema<RecursiveType, 'default'> =
-            schemas.structure<RecursiveType>({
-                nodes: schemas.array(
-                    schemas.union<RecursiveType | string>(
-                        schemas.string(),
-                        schemas.lazy(() => lazySchema),
-                    ),
+        const lazySchema: StructureSchema<RecursiveType> = schemas.structure<RecursiveType>({
+            nodes: schemas.array(
+                schemas.union<RecursiveType | string>(
+                    schemas.string(),
+                    schemas.lazy(() => lazySchema),
                 ),
-            });
+            ),
+        });
 
         test('should return valid JSON schema for lazy type', () => {
             const jsonSchema = lazySchema.generateJSONSchema('default');
@@ -314,7 +309,6 @@ describe('Common schema methods', () => {
 
         describe('with Record', () => {
             test('should return value result when value has right type', () => {
-                const errorKeeper = new ErrorKeeper();
                 const result = schema.compose(
                     {
                         name: 'The book',
@@ -327,7 +321,7 @@ describe('Common schema methods', () => {
                         tags: ['horror', 'adventure'],
                         available: 'available',
                     },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                     '/',
@@ -356,7 +350,6 @@ describe('Common schema methods', () => {
             });
 
             test('should return error result when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper();
                 const result = schema.compose(
                     {
                         title: 'The book',
@@ -368,7 +361,7 @@ describe('Common schema methods', () => {
                         'chapters/2/published': '',
                         'tags/check': ['horror', 'adveture'],
                     },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                     '/',
@@ -386,7 +379,6 @@ describe('Common schema methods', () => {
 
         describe('with URLSearchParams', () => {
             test('should return value result when value has right type', () => {
-                const errorKeeper = new ErrorKeeper();
                 const urlSearchParams = new URLSearchParams([
                     ['name', 'The book'],
                     ['chapters/1/title', 'First'],
@@ -401,7 +393,7 @@ describe('Common schema methods', () => {
                 ]);
                 const result = schema.compose(
                     urlSearchParams,
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                     '/',
@@ -430,7 +422,6 @@ describe('Common schema methods', () => {
             });
 
             test('should return error result when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper();
                 const urlSearchParams = new URLSearchParams([
                     ['title', 'The book'],
                     ['chapters/1/title', 'First'],
@@ -444,7 +435,7 @@ describe('Common schema methods', () => {
                 ]);
                 const result = schema.compose(
                     urlSearchParams,
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                     '/',
@@ -462,7 +453,6 @@ describe('Common schema methods', () => {
 
         describe('with FormData', () => {
             test('should return value result when value has right type', () => {
-                const errorKeeper = new ErrorKeeper();
                 const formData = new FormData();
                 formData.append('name', 'The book');
                 formData.append('chapters/1/title', 'First');
@@ -476,7 +466,7 @@ describe('Common schema methods', () => {
                 formData.append('available', 'available');
                 const result = schema.compose(
                     formData,
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                     '/',
@@ -505,7 +495,6 @@ describe('Common schema methods', () => {
             });
 
             test('should return error result when value has not right type and has errors', () => {
-                const errorKeeper = new ErrorKeeper();
                 const formData = new FormData();
                 formData.append('title', 'The book');
                 formData.append('chapters/1/title', 'First');
@@ -518,7 +507,7 @@ describe('Common schema methods', () => {
                 formData.append('tags/check', 'adventure');
                 const result = schema.compose(
                     formData,
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                     '/',
@@ -561,11 +550,10 @@ describe('Complex schema using', () => {
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 schema.validate(
                     { data: { id: 'none', type: '12', attributes: [{ a: '1' }, { b: 'c' }] } },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -573,10 +561,9 @@ describe('Complex schema using', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = schema.validate(
                 { data: { test: '12', attributes: [1, {}, 12] } },
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );

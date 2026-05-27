@@ -1,15 +1,14 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { TypeSchema, Schema, Defs, StringStructure, withDefault } from '../schema';
+import { TypeSchema, Schema, Defs, StringStructure, withDefault, ValidationError } from '../schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export default class UnionSchema<T, L extends string> extends TypeSchema<T, L> {
-    #schemas: Schema<T, L>[];
+export default class UnionSchema<T> extends TypeSchema<T> {
+    #schemas: Schema<T>[];
 
-    constructor(...schemas: Schema<T, L>[]) {
+    constructor(...schemas: Schema<T>[]) {
         super();
         this.#schemas = schemas;
     }
@@ -17,31 +16,29 @@ export default class UnionSchema<T, L extends string> extends TypeSchema<T, L> {
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
-        const innerErrorKeeper = errorKeeper.child();
+        const errorSet = new ErrorSet<ValidationError>();
         for (let i = 0; i < this.#schemas.length; i++) {
-            const unionErrorKeeper = innerErrorKeeper.child();
-            unionErrorKeeper.group = i;
-            const castedValue = this.#schemas[i].validate(
-                value,
-                unionErrorKeeper,
-                formatter,
-                useDefault,
-            );
+            const castedValue = this.#schemas[i].validate(value, pointer, formatter, useDefault);
             if (castedValue.ok) {
                 return castedValue;
             }
-            innerErrorKeeper.append(castedValue.error);
+            for (const error of castedValue.error.errors) {
+                errorSet.add({
+                    pointer: error.pointer,
+                    detail: error.detail,
+                    group: error.group ?? i,
+                });
+            }
         }
-        errorKeeper.append(innerErrorKeeper.makeErrorSet());
 
-        return { ok: false, error: errorKeeper.makeErrorSet() };
+        return { ok: false, error: errorSet };
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return {
             title: this.getTitle(lang),
             description: this.getDescription(lang),
@@ -55,27 +52,25 @@ export default class UnionSchema<T, L extends string> extends TypeSchema<T, L> {
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
-        const innerErrorKeeper = errorKeeper.child();
+        const errorSet = new ErrorSet<ValidationError>();
         for (let i = 0; i < this.#schemas.length; i++) {
-            const unionErrorKeeper = innerErrorKeeper.child();
-            unionErrorKeeper.group = i;
-            const castedValue = this.#schemas[i].cast(
-                value,
-                unionErrorKeeper,
-                formatter,
-                useDefault,
-            );
+            const castedValue = this.#schemas[i].cast(value, pointer, formatter, useDefault);
             if (castedValue.ok) {
                 return castedValue;
             }
-            innerErrorKeeper.append(castedValue.error);
+            for (const error of castedValue.error.errors) {
+                errorSet.add({
+                    pointer: error.pointer,
+                    detail: error.detail,
+                    group: error.group ?? i,
+                });
+            }
         }
-        errorKeeper.append(innerErrorKeeper.makeErrorSet());
 
-        return { ok: false, error: errorKeeper.makeErrorSet() };
+        return { ok: false, error: errorSet };
     }
 }

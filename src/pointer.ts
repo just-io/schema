@@ -9,6 +9,10 @@ export class Pointer {
         return new Pointer(...this.#paths.concat(paths.map(String)));
     }
 
+    append(pointer: Pointer): Pointer {
+        return new Pointer(...this.#paths.concat(pointer.#paths));
+    }
+
     slice(start: number = 0, end = this.#paths.length): Pointer {
         return new Pointer(...this.#paths.slice(start, end));
     }

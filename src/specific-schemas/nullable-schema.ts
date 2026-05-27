@@ -1,15 +1,14 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, Schema, StringStructure, withDefault } from '../schema';
+import { Defs, Schema, StringStructure, ValidationError, withDefault } from '../schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export default class NullableSchema<T, L extends string> extends Schema<T | null, L> {
-    #schema: Schema<T, L>;
+export default class NullableSchema<T> extends Schema<T | null> {
+    #schema: Schema<T>;
 
-    constructor(schema: Schema<T, L>) {
+    constructor(schema: Schema<T>) {
         super();
         this.#schema = schema;
     }
@@ -17,7 +16,7 @@ export default class NullableSchema<T, L extends string> extends Schema<T | null
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T | null, ErrorSet<ValidationError>> {
@@ -25,17 +24,17 @@ export default class NullableSchema<T, L extends string> extends Schema<T | null
             return { ok: true, value: null };
         }
 
-        return this.#schema.validate(value, errorKeeper, formatter, useDefault);
+        return this.#schema.validate(value, pointer, formatter, useDefault);
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return this.#schema.makeJSONSchema(pointer, defs, lang);
     }
 
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T | null, ErrorSet<ValidationError>> {
@@ -43,6 +42,6 @@ export default class NullableSchema<T, L extends string> extends Schema<T | null
             return { ok: true, value: null };
         }
 
-        return this.#schema.cast(value, errorKeeper, formatter, useDefault);
+        return this.#schema.cast(value, pointer, formatter, useDefault);
     }
 }

@@ -1,12 +1,11 @@
 import { ErrorFormatter } from '../error-formatter';
-import { ErrorKeeper, ValidationError } from '../error-keeper';
 import { JSONSchemaValue } from '../json-schema';
 import { Pointer } from '../pointer';
-import { Defs, StringStructure, TypeSchema, withDefault } from '../schema';
+import { Defs, StringStructure, TypeSchema, ValidationError, withDefault } from '../schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 
-export default class StringSchema<T extends string, L extends string> extends TypeSchema<T, L> {
+export default class StringSchema<T extends string> extends TypeSchema<T> {
     #enum?: T[];
 
     #minLength?: number;
@@ -15,19 +14,26 @@ export default class StringSchema<T extends string, L extends string> extends Ty
 
     #regexp?: RegExp;
 
-    #validate(value: string, errorKeeper: ErrorKeeper, formatter: ErrorFormatter): void {
+    #validate(
+        value: string,
+        pointer: Pointer,
+        formatter: ErrorFormatter,
+    ): ErrorSet<ValidationError> {
+        const errorSet = new ErrorSet<ValidationError>();
         if (this.#enum && !this.#enum.includes(value as T)) {
-            errorKeeper.push({ detail: formatter.string.enum(this.#enum) });
+            errorSet.add({ pointer, detail: formatter.string.enum(this.#enum) });
         }
         if (this.#regexp && !this.#regexp.test(value)) {
-            errorKeeper.push({ detail: formatter.string.regexp(this.#regexp) });
+            errorSet.add({ pointer, detail: formatter.string.regexp(this.#regexp) });
         }
         if (this.#minLength !== undefined && value.length < this.#minLength) {
-            errorKeeper.push({ detail: formatter.string.minLength(this.#minLength) });
+            errorSet.add({ pointer, detail: formatter.string.minLength(this.#minLength) });
         }
         if (this.#maxLength !== undefined && value.length > this.#maxLength) {
-            errorKeeper.push({ detail: formatter.string.maxLength(this.#maxLength) });
+            errorSet.add({ pointer, detail: formatter.string.maxLength(this.#maxLength) });
         }
+
+        return errorSet;
     }
 
     constructor(values: T[] = []) {
@@ -40,24 +46,29 @@ export default class StringSchema<T extends string, L extends string> extends Ty
     @withDefault
     validate(
         value: unknown,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'string') {
-            errorKeeper.push({ detail: formatter.string.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.string.type(),
+                }),
+            };
         }
-        this.#validate(value, errorKeeper, formatter);
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        const errorSet = this.#validate(value, pointer, formatter);
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
 
         return { ok: true, value: value as T };
     }
 
-    makeJSONSchema(pointer: Pointer, defs: Defs<L>, lang: L): JSONSchemaValue {
+    makeJSONSchema(pointer: Pointer, defs: Defs, lang: string): JSONSchemaValue {
         return {
             type: 'string',
             title: this.getTitle(lang),
@@ -73,18 +84,23 @@ export default class StringSchema<T extends string, L extends string> extends Ty
     @withDefault
     cast(
         value: StringStructure,
-        errorKeeper: ErrorKeeper,
+        pointer: Pointer,
         formatter: ErrorFormatter,
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
         if (typeof value !== 'string') {
-            errorKeeper.push({ detail: formatter.string.type() });
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+            return {
+                ok: false,
+                error: new ErrorSet<ValidationError>().add({
+                    pointer,
+                    detail: formatter.string.type(),
+                }),
+            };
         }
-        this.#validate(value, errorKeeper, formatter);
-        if (errorKeeper.hasErrors()) {
-            return { ok: false, error: errorKeeper.makeErrorSet() };
+        const errorSet = this.#validate(value, pointer, formatter);
+        if (errorSet.hasErrors()) {
+            return { ok: false, error: errorSet };
         }
 
         return { ok: true, value: value as T };

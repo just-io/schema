@@ -5,17 +5,23 @@ import CustomSchema from './custom-schema';
 import { Result } from '../result';
 import { ErrorSet } from '../error-set';
 import { defaultErrorFormatter } from '../error-formatter';
-import { ValidationError, ErrorKeeper } from '../error-keeper';
+import { Pointer } from '../pointer';
+import { ValidationError } from '../schema';
 
 describe('CustomSchema', () => {
-    const customFileSchema = new CustomSchema<File, 'default'>({
+    const customFileSchema = new CustomSchema<File>({
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        cast(value, errorKeeper, useDefault) {
+        cast(value, pointer, useDefault) {
             if (value instanceof File) {
                 return { ok: true, value };
             } else {
-                errorKeeper.push({ detail: 'Should be File.' });
-                return { ok: false, error: errorKeeper.makeErrorSet() };
+                return {
+                    ok: false,
+                    error: new ErrorSet<ValidationError>().add({
+                        pointer,
+                        detail: 'Should be File.',
+                    }),
+                };
             }
         },
         makeJSONSchema(pointer, defs, lang) {
@@ -26,23 +32,27 @@ describe('CustomSchema', () => {
             };
         },
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        validate(value, errorKeeper, useDefault): Result<File, ErrorSet<ValidationError>> {
+        validate(value, pointer, useDefault): Result<File, ErrorSet<ValidationError>> {
             if (value instanceof File) {
                 return { ok: true, value };
             } else {
-                errorKeeper.push({ detail: 'Should be File.' });
-                return { ok: false, error: errorKeeper.makeErrorSet() };
+                return {
+                    ok: false,
+                    error: new ErrorSet<ValidationError>().add({
+                        pointer,
+                        detail: 'Should be File.',
+                    }),
+                };
             }
         },
     });
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 customFileSchema.validate(
                     new File([], 'test'),
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -50,18 +60,18 @@ describe('CustomSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
-            assert.ok(!customFileSchema.validate(12, errorKeeper, defaultErrorFormatter, false).ok);
+            assert.ok(
+                !customFileSchema.validate(12, new Pointer(), defaultErrorFormatter, false).ok,
+            );
         });
     });
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 customFileSchema.cast(
                     new File([], 'test'),
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -69,8 +79,7 @@ describe('CustomSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
-            assert.ok(!customFileSchema.cast('', errorKeeper, defaultErrorFormatter, false).ok);
+            assert.ok(!customFileSchema.cast('', new Pointer(), defaultErrorFormatter, false).ok);
         });
     });
 });

@@ -9,12 +9,12 @@ import RecordSchema from './record-schema';
 import UnknownSchema from './unknown-schema';
 import { transformToJSON } from '../heplers';
 import { defaultErrorFormatter } from '../error-formatter';
-import { ErrorKeeper } from '../error-keeper';
+import { Pointer } from '../pointer';
 
 type Group = { op: 'get'; url: string } | { op: 'add'; data: Record<string, unknown> };
 
 describe('GroupSchema', () => {
-    const groupSchema = new GroupSchema<Group, 'op', 'default'>('op', {
+    const groupSchema = new GroupSchema<Group, 'op'>('op', {
         get: new StructureSchema({
             op: new ValueSchema('get'),
             url: new StringSchema(),
@@ -27,11 +27,10 @@ describe('GroupSchema', () => {
 
     describe('method validate', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 groupSchema.validate(
                     { op: 'get', url: 'example.com' },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -39,7 +38,7 @@ describe('GroupSchema', () => {
             assert.ok(
                 groupSchema.validate(
                     { op: 'add', data: { a: 12 } },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -47,10 +46,9 @@ describe('GroupSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = groupSchema.validate(
                 { op: 'delete', path: 'example.com' },
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );
@@ -63,11 +61,10 @@ describe('GroupSchema', () => {
 
     describe('method cast', () => {
         test('should return value result when value has right type', () => {
-            const errorKeeper = new ErrorKeeper();
             assert.ok(
                 groupSchema.cast(
                     { op: 'get', url: 'example.com' },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -75,7 +72,7 @@ describe('GroupSchema', () => {
             assert.ok(
                 groupSchema.cast(
                     { op: 'add', data: { a: '12' } },
-                    errorKeeper,
+                    new Pointer(),
                     defaultErrorFormatter,
                     false,
                 ).ok,
@@ -83,10 +80,9 @@ describe('GroupSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const errorKeeper = new ErrorKeeper();
             const result = groupSchema.cast(
                 { op: 'delete', path: 'example.com' },
-                errorKeeper,
+                new Pointer(),
                 defaultErrorFormatter,
                 false,
             );
