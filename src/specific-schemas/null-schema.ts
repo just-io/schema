@@ -29,7 +29,7 @@ export default class NullSchema extends TypeSchema<null> {
             type: 'null',
             title: this.getTitle(lang),
             description: this.getDescription(lang),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

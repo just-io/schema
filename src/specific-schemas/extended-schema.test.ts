@@ -4,7 +4,7 @@ import { describe, test } from 'node:test';
 import ExtendedSchema from './extended-schema';
 import RecordSchema from './record-schema';
 import StringSchema from './string-schema';
-import { transformToJSON } from '../heplers';
+import { transformToJSON } from '../helpers';
 import { Result } from '../result';
 import { Pointer } from '../pointer';
 import { defaultErrorFormatter } from '../error-formatter';

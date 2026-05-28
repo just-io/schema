@@ -34,6 +34,12 @@ export default class TupleSchema<T extends unknown[]> extends TypeSchema<T> {
             };
         }
         const errorSet = new ErrorSet<ValidationError>();
+        if (value.length !== this.#tupleSchemas.length) {
+            errorSet.add({
+                pointer,
+                detail: formatter.array.equalItems(this.#tupleSchemas.length),
+            });
+        }
         if (value.length > this.#tupleSchemas.length) {
             for (let i = this.#tupleSchemas.length; i < value.length; i++) {
                 errorSet.add({
@@ -41,11 +47,8 @@ export default class TupleSchema<T extends unknown[]> extends TypeSchema<T> {
                     detail: formatter.object.notexistField(),
                 });
             }
-            return { ok: false, error: errorSet };
         }
-        if (value.length !== this.#tupleSchemas.length) {
-            errorSet.add({ pointer, detail: formatter.array.maxItems(this.#tupleSchemas.length) });
-            errorSet.add({ pointer, detail: formatter.array.minItems(this.#tupleSchemas.length) });
+        if (errorSet.hasErrors()) {
             return { ok: false, error: errorSet };
         }
 
@@ -78,7 +81,7 @@ export default class TupleSchema<T extends unknown[]> extends TypeSchema<T> {
             prefixItems: this.#tupleSchemas.map((schema, i) => {
                 return (schema as Schema<unknown>).makeJSONSchema(pointer.concat(i), defs, lang);
             }),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 
@@ -108,6 +111,12 @@ export default class TupleSchema<T extends unknown[]> extends TypeSchema<T> {
                   }, [] as StringStructure[]),
               );
 
+        if (value.length !== this.#tupleSchemas.length) {
+            errorSet.add({
+                pointer,
+                detail: formatter.array.equalItems(this.#tupleSchemas.length),
+            });
+        }
         if (array.length > this.#tupleSchemas.length) {
             for (let i = this.#tupleSchemas.length; i < array.length; i++) {
                 errorSet.add({
@@ -115,11 +124,8 @@ export default class TupleSchema<T extends unknown[]> extends TypeSchema<T> {
                     detail: formatter.object.notexistField(),
                 });
             }
-            return { ok: false, error: errorSet };
         }
-        if (array.length !== this.#tupleSchemas.length) {
-            errorSet.add({ pointer, detail: formatter.array.maxItems(this.#tupleSchemas.length) });
-            errorSet.add({ pointer, detail: formatter.array.minItems(this.#tupleSchemas.length) });
+        if (errorSet.hasErrors()) {
             return { ok: false, error: errorSet };
         }
 

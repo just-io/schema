@@ -6,7 +6,7 @@ import StringSchema from './string-schema';
 import StructureSchema from './structure-schema';
 import ArraySchema from './array-schema';
 import UnionSchema from './union-schema';
-import { transformToJSON } from '../heplers';
+import { transformToJSON } from '../helpers';
 import { Pointer } from '../pointer';
 import { defaultErrorFormatter } from '../error-formatter';
 

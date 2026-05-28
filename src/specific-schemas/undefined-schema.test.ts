@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import UndefinedSchema from './undefined-schema';
-import { transformToJSON } from '../heplers';
+import { transformToJSON } from '../helpers';
 import { Pointer } from '../pointer';
 import { defaultErrorFormatter } from '../error-formatter';
 

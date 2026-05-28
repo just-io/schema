@@ -28,7 +28,7 @@ describe('CustomSchema', () => {
             return {
                 title: this.getTitle(lang),
                 description: this.getDescription(lang),
-                defaut: this.getDefault(),
+                default: this.getDefault(),
             };
         },
         // eslint-disable-next-line @typescript-eslint/no-unused-vars

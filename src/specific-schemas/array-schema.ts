@@ -155,7 +155,7 @@ export default class ArraySchema<T> extends TypeSchema<T[]> {
             minItems: this.#minItems,
             maxItems: this.#maxItems,
             uniqueItems: this.#unique,
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 }

@@ -4,7 +4,7 @@ import { describe, test } from 'node:test';
 import UnionSchema from './union-schema';
 import NumberSchema from './number-schema';
 import NullSchema from './null-schema';
-import { transformToJSON } from '../heplers';
+import { transformToJSON } from '../helpers';
 import { Pointer } from '../pointer';
 import { defaultErrorFormatter } from '../error-formatter';
 

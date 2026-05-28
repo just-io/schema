@@ -19,33 +19,31 @@ import LazySchema from './specific-schemas/lazy-schema';
 import CustomSchema, { CustomSchemaParams } from './specific-schemas/custom-schema';
 import NullableSchema from './specific-schemas/nullable-schema';
 
-export function make() {
-    return {
-        any: () => new AnySchema(),
-        unknown: () => new UnknownSchema(),
-        value: <T extends string | number | boolean | null>(expectedValue: T) =>
-            new ValueSchema<T>(expectedValue),
-        string: <T extends string>(values: T[] = []) => new StringSchema<T>(values),
-        number: <T extends number>(values: T[] = []) => new NumberSchema<T>(values),
-        boolean: () => new BooleanSchema(),
-        null: () => new NullSchema(),
-        undefined: () => new UndefinedSchema(),
-        union: <T>(...unionSchemas: Schema<T>[]) => new UnionSchema<T>(...unionSchemas),
-        optional: <T>(schema: Schema<T>) => new OptionalSchema<T>(schema),
-        nullable: <T>(schema: Schema<T>) => new NullableSchema<T>(schema),
-        group: <T, K extends keyof T & string>(key: K, groupSchemas: GroupSchemas<T, K>) =>
-            new GroupSchema<T, K>(key, groupSchemas),
-        extended: <T>(mainSchema: Schema<T>, ...specifyingValidators: SpecifyingValidator<T>[]) =>
-            new ExtendedSchema<T>(mainSchema, ...specifyingValidators),
-        array: <T>(itemSchema: Schema<T>) => new ArraySchema<T>(itemSchema),
-        tuple: <T extends unknown[]>(...tupleSchemas: TupleSchemas<T>) =>
-            new TupleSchema<T>(...(tupleSchemas as { [I in keyof T]: Schema<T[I]> })),
-        structure: <T>(fieldSchemas: FieldSchemas<T>) => new StructureSchema<T>(fieldSchemas),
-        record: <T>(valueSchema: Schema<T>) => new RecordSchema<T>(valueSchema),
-        lazy: <T>(lazySchema: () => Schema<T>) => new LazySchema<T>(lazySchema),
-        custom: <T>(params: CustomSchemaParams<T>) => new CustomSchema<T>(params),
-    };
-}
+export const schemas = {
+    any: () => new AnySchema(),
+    unknown: () => new UnknownSchema(),
+    value: <T extends string | number | boolean | null>(expectedValue: T) =>
+        new ValueSchema<T>(expectedValue),
+    string: <T extends string>(values: T[] = []) => new StringSchema<T>(values),
+    number: <T extends number>(values: T[] = []) => new NumberSchema<T>(values),
+    boolean: () => new BooleanSchema(),
+    null: () => new NullSchema(),
+    undefined: () => new UndefinedSchema(),
+    union: <T>(...unionSchemas: Schema<T>[]) => new UnionSchema<T>(...unionSchemas),
+    optional: <T>(schema: Schema<T>) => new OptionalSchema<T>(schema),
+    nullable: <T>(schema: Schema<T>) => new NullableSchema<T>(schema),
+    group: <T, K extends keyof T & string>(key: K, groupSchemas: GroupSchemas<T, K>) =>
+        new GroupSchema<T, K>(key, groupSchemas),
+    extended: <T>(mainSchema: Schema<T>, ...specifyingValidators: SpecifyingValidator<T>[]) =>
+        new ExtendedSchema<T>(mainSchema, ...specifyingValidators),
+    array: <T>(itemSchema: Schema<T>) => new ArraySchema<T>(itemSchema),
+    tuple: <T extends unknown[]>(...tupleSchemas: TupleSchemas<T>) =>
+        new TupleSchema<T>(...(tupleSchemas as { [I in keyof T]: Schema<T[I]> })),
+    structure: <T>(fieldSchemas: FieldSchemas<T>) => new StructureSchema<T>(fieldSchemas),
+    record: <T>(valueSchema: Schema<T>) => new RecordSchema<T>(valueSchema),
+    lazy: <T>(lazySchema: () => Schema<T>) => new LazySchema<T>(lazySchema),
+    custom: <T>(params: CustomSchemaParams<T>) => new CustomSchema<T>(params),
+};
 
 export * from './error-set';
 export * from './result';

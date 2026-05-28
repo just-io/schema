@@ -7,7 +7,7 @@ import ValueSchema from './value-schema';
 import StringSchema from './string-schema';
 import RecordSchema from './record-schema';
 import UnknownSchema from './unknown-schema';
-import { transformToJSON } from '../heplers';
+import { transformToJSON } from '../helpers';
 import { defaultErrorFormatter } from '../error-formatter';
 import { Pointer } from '../pointer';
 

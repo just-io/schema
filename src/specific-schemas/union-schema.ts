@@ -45,7 +45,7 @@ export default class UnionSchema<T> extends TypeSchema<T> {
             oneOf: this.#schemas.map((schema, i) =>
                 schema.makeJSONSchema(pointer.concat(i), defs, lang),
             ),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

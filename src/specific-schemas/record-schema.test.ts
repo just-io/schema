@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 
 import RecordSchema from './record-schema';
 import StringSchema from './string-schema';
-import { transformToJSON } from '../heplers';
+import { transformToJSON } from '../helpers';
 import { Pointer } from '../pointer';
 import { defaultErrorFormatter } from '../error-formatter';
 
@@ -31,6 +31,21 @@ describe('RecordSchema', () => {
             assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
                 { pointer: ['age'], detail: 'Should be "string" type.' },
             ]);
+        });
+
+        test('should return error result when value has not right type and has errors', () => {
+            for (const value of [null, 1, '2', []]) {
+                const result = new RecordSchema(new StringSchema()).validate(
+                    value,
+                    new Pointer(),
+                    defaultErrorFormatter,
+                    false,
+                );
+                assert.ok(!result.ok);
+                assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
+                    { pointer: [], detail: 'Should be "object" type.' },
+                ]);
+            }
         });
     });
 

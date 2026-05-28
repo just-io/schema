@@ -5,7 +5,7 @@ import StructureSchema from './structure-schema';
 import StringSchema from './string-schema';
 import NumberSchema from './number-schema';
 import OptionalSchema from './optional-schema';
-import { transformToJSON } from '../heplers';
+import { transformToJSON } from '../helpers';
 import { Pointer } from '../pointer';
 import { defaultErrorFormatter } from '../error-formatter';
 
@@ -51,14 +51,16 @@ describe('StructureSchema', () => {
         });
 
         test('should return error result when value has not right type and has errors', () => {
-            const result = new StructureSchema({
-                name: new StringSchema(),
-                count: new NumberSchema(),
-            }).validate(null, new Pointer(), defaultErrorFormatter, false);
-            assert.ok(!result.ok);
-            assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
-                { pointer: [], detail: 'Should be "object" type.' },
-            ]);
+            for (const value of [null, 1, '2', []]) {
+                const result = new StructureSchema({
+                    name: new StringSchema(),
+                    count: new NumberSchema(),
+                }).validate(value, new Pointer(), defaultErrorFormatter, false);
+                assert.ok(!result.ok);
+                assert.deepStrictEqual(result.error.toJSON(transformToJSON), [
+                    { pointer: [], detail: 'Should be "object" type.' },
+                ]);
+            }
         });
 
         test('should return error result when value contains wrong keys and does not contain right keys and has errors', () => {

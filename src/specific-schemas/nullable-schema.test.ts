@@ -3,7 +3,7 @@ import { describe, test } from 'node:test';
 
 import NullableSchema from './nullable-schema';
 import NumberSchema from './number-schema';
-import { transformToJSON } from '../heplers';
+import { transformToJSON } from '../helpers';
 import { Pointer } from '../pointer';
 import { defaultErrorFormatter } from '../error-formatter';
 

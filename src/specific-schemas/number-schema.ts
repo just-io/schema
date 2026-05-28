@@ -77,7 +77,7 @@ export default class NumberSchema<T extends number> extends TypeSchema<T> {
             minimum: this.#minimum,
             maximum: this.#maximum,
             enum: this.#enum,
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

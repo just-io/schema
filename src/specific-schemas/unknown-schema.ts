@@ -23,7 +23,7 @@ export default class UnknownSchema extends TypeSchema<unknown> {
         return {
             title: this.getTitle(lang),
             description: this.getDescription(lang),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

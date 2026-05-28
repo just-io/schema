@@ -77,7 +77,7 @@ export default class StringSchema<T extends string> extends TypeSchema<T> {
             minLength: this.#minLength,
             enum: this.#enum,
             pattern: this.#regexp?.source,
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

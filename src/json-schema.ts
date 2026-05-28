@@ -3,7 +3,7 @@ export type JSONSchemaBoolean = {
     title?: string;
     description?: string;
     const?: boolean;
-    defaut?: boolean;
+    default?: boolean;
 };
 
 export type JSONSchemaNumber = {
@@ -14,7 +14,7 @@ export type JSONSchemaNumber = {
     maximum?: number;
     const?: number;
     enum?: number[];
-    defaut?: number;
+    default?: number;
 };
 
 export type JSONSchemaInteger = {
@@ -25,7 +25,7 @@ export type JSONSchemaInteger = {
     maximum?: number;
     const?: number;
     enum?: number[];
-    defaut?: number;
+    default?: number;
 };
 
 export type JSONSchemaNull = {
@@ -33,7 +33,7 @@ export type JSONSchemaNull = {
     title?: string;
     description?: string;
     const?: null;
-    defaut?: null;
+    default?: null;
 };
 
 export type JSONSchemaString = {
@@ -45,21 +45,21 @@ export type JSONSchemaString = {
     minLength?: number;
     pattern?: string;
     enum?: string[];
-    defaut?: string;
+    default?: string;
 };
 
 export type JSONSchemaAny = {
     type?: never;
     title?: string;
     description?: string;
-    defaut?: unknown;
+    default?: unknown;
 };
 
 export type JSONSchemaRef = {
     $ref: string;
     title?: string;
     description?: string;
-    defaut?: unknown;
+    default?: unknown;
 };
 
 export type JSONSchemaValue =
@@ -86,7 +86,7 @@ export type JSONSchemaOneOf = {
     oneOf: JSONSchemaValue[];
     title?: string;
     description?: string;
-    defaut?: unknown;
+    default?: unknown;
 };
 
 export type JSONSchemaArray = {
@@ -98,7 +98,7 @@ export type JSONSchemaArray = {
     minItems?: number;
     items: JSONSchemaValue;
     uniqueItems?: boolean;
-    defaut?: unknown;
+    default?: unknown;
 };
 
 export type JSONSchemaTuple = {
@@ -106,7 +106,7 @@ export type JSONSchemaTuple = {
     title?: string;
     description?: string;
     prefixItems: JSONSchemaValue[];
-    defaut?: unknown;
+    default?: unknown;
 };
 
 export type JSONSchemaObject = {
@@ -116,7 +116,7 @@ export type JSONSchemaObject = {
     properties: Record<string, JSONSchemaValue>;
     additionalProperties: false | JSONSchemaValue;
     required?: string[];
-    defaut?: unknown;
+    default?: unknown;
 };
 
 export type JSONSchemaRecord = {
@@ -124,5 +124,5 @@ export type JSONSchemaRecord = {
     title?: string;
     description?: string;
     additionalProperties: JSONSchemaValue;
-    defaut?: unknown;
+    default?: unknown;
 };

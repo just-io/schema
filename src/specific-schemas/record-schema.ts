@@ -20,7 +20,7 @@ export default class RecordSchema<T> extends TypeSchema<Record<string, T>> {
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<Record<string, T>, ErrorSet<ValidationError>> {
-        if (typeof value !== 'object' || value === null) {
+        if (typeof value !== 'object' || value === null || Array.isArray(value)) {
             return {
                 ok: false,
                 error: new ErrorSet<ValidationError>().add({
@@ -64,7 +64,7 @@ export default class RecordSchema<T> extends TypeSchema<Record<string, T>> {
                 defs,
                 lang,
             ),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

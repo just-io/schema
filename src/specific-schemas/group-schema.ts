@@ -73,7 +73,7 @@ export default class GroupSchema<T, K extends keyof T & string> extends TypeSche
             oneOf: Object.entries(this.#groupSchemas).map(([key, schema]) =>
                 (schema as Schema<unknown>).makeJSONSchema(pointer.concat(key), defs, lang),
             ),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

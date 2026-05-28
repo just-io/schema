@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
-import { make, defaultErrorFormatter, Pointer } from './index';
+import { schemas, defaultErrorFormatter, Pointer } from './index';
 import StructureSchema from './specific-schemas/structure-schema';
-import { transformToJSON } from './heplers';
-
-const schemas = make();
+import { transformToJSON } from './helpers';
 
 type Book = {
     name: string;
@@ -122,7 +120,7 @@ describe('Common schema methods', () => {
                 .generateJSONSchema('default');
             assert.deepStrictEqual(jsonSchema, {
                 type: 'number',
-                defaut: 0,
+                default: 0,
                 title: 'Title of value',
                 description: 'Description of value',
             });
@@ -183,7 +181,7 @@ describe('Common schema methods', () => {
                     },
                     published: {
                         type: 'boolean',
-                        defaut: false,
+                        default: false,
                         title: 'Publishing marker',
                         description: 'Whether the book is published (true), or not (false)',
                     },
@@ -219,7 +217,7 @@ describe('Common schema methods', () => {
                                             type: 'object',
                                         },
                                         type: 'array',
-                                        defaut: [],
+                                        default: [],
                                     },
                                     type: {
                                         const: 'story',

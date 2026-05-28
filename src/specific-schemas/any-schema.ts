@@ -25,7 +25,7 @@ export default class AnySchema extends TypeSchema<any> {
         return {
             title: this.getTitle(lang),
             description: this.getDescription(lang),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

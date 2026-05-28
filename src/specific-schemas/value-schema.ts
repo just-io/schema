@@ -41,7 +41,7 @@ export default class ValueSchema<T extends string | number | boolean | null> ext
                 title: this.getTitle(lang),
                 description: this.getDescription(lang),
                 const: this.#expectedValue,
-                defaut: this.getDefault() as string | undefined,
+                default: this.getDefault() as string | undefined,
             };
         }
         if (typeof this.#expectedValue === 'number') {
@@ -50,7 +50,7 @@ export default class ValueSchema<T extends string | number | boolean | null> ext
                 title: this.getTitle(lang),
                 description: this.getDescription(lang),
                 const: this.#expectedValue,
-                defaut: this.getDefault() as number | undefined,
+                default: this.getDefault() as number | undefined,
             };
         }
         if (typeof this.#expectedValue === 'boolean') {
@@ -59,7 +59,7 @@ export default class ValueSchema<T extends string | number | boolean | null> ext
                 title: this.getTitle(lang),
                 description: this.getDescription(lang),
                 const: this.#expectedValue,
-                defaut: this.getDefault() as boolean | undefined,
+                default: this.getDefault() as boolean | undefined,
             };
         }
         if (this.#expectedValue === null) {
@@ -68,13 +68,13 @@ export default class ValueSchema<T extends string | number | boolean | null> ext
                 title: this.getTitle(lang),
                 description: this.getDescription(lang),
                 const: this.#expectedValue,
-                defaut: this.getDefault() as null | undefined,
+                default: this.getDefault() as null | undefined,
             };
         }
         return {
             title: this.getTitle(lang),
             description: this.getDescription(lang),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

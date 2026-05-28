@@ -27,7 +27,7 @@ export default class StructureSchema<T> extends TypeSchema<T> {
         formatter: ErrorFormatter,
         useDefault: boolean,
     ): Result<T, ErrorSet<ValidationError>> {
-        if (typeof value !== 'object' || value === null) {
+        if (typeof value !== 'object' || value === null || Array.isArray(value)) {
             return {
                 ok: false,
                 error: new ErrorSet<ValidationError>().add({
@@ -116,7 +116,7 @@ export default class StructureSchema<T> extends TypeSchema<T> {
                     return fieldSchema instanceof OptionalSchema ? '' : key;
                 })
                 .filter(Boolean),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

@@ -32,7 +32,7 @@ export default class BooleanSchema extends TypeSchema<boolean> {
             type: 'boolean',
             title: this.getTitle(lang),
             description: this.getDescription(lang),
-            defaut: this.getDefault(),
+            default: this.getDefault(),
         };
     }
 

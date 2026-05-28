@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, test } from 'node:test';
 
 import NullSchema from './null-schema';
-import { transformToJSON } from '../heplers';
+import { transformToJSON } from '../helpers';
 import { defaultErrorFormatter } from '../error-formatter';
 import { Pointer } from '../pointer';
 
